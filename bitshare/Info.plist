@@ -34,7 +34,7 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>bitshare uses Bluetooth to create a secure mesh network for chatting with nearby users.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>bitshare uses Bluetooth to discover and connect with other bitshare users nearby.</string>
+	<string>bitshare uses Bluetooth to discover and connect with other bitshare users for secure file transfers.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
