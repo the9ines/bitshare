@@ -1,159 +1,178 @@
-![ChatGPT Image Jul 5, 2025 at 06_07_31 PM](https://github.com/user-attachments/assets/2660f828-49c7-444d-beca-d8b01854667a)
-# bitchat
+# BitShare
 
-> [!WARNING]
-> This software has not received external security review and may contain vulnerabilities and may not necessarily meet its stated security goals. Do not use it for sensitive use cases, and do not rely on its security until it has been reviewed. Work in progress.
+> **Secure Decentralized File Sharing Over Bluetooth Mesh Networks**
 
-A secure, decentralized, peer-to-peer messaging app that works over Bluetooth mesh networks. No internet required, no servers, no phone numbers - just pure encrypted communication.
+A privacy-first, decentralized file sharing application that works over Bluetooth mesh networks. No internet required, no servers, no accounts - just secure peer-to-peer file transfer.
 
-## License
+## Attribution
 
-This project is released into the public domain. See the [LICENSE](LICENSE) file for details.
+BitShare is built upon the foundation of **bitchat** by [Jack Dorsey](https://github.com/jack) ([@jackjackbits](https://github.com/jackjackbits)). We extend our deep gratitude to Jack for creating the innovative mesh networking protocol and secure communication foundation that makes BitShare possible.
 
-## Features
+- **Original Project**: [bitchat](https://github.com/jackjackbits/bitchat) 
+- **Original Author**: Jack Dorsey
+- **BitShare Fork**: Adapted for secure file sharing use cases
 
-- **Decentralized Mesh Network**: Automatic peer discovery and multi-hop message relay over Bluetooth LE
-- **End-to-End Encryption**: X25519 key exchange + AES-256-GCM for private messages
-- **Channel-Based Chats**: Topic-based group messaging with optional password protection
-- **Store & Forward**: Messages cached for offline peers and delivered when they reconnect
-- **Privacy First**: No accounts, no phone numbers, no persistent identifiers
-- **IRC-Style Commands**: Familiar `/join`, `/msg`, `/who` style interface
-- **Message Retention**: Optional channel-wide message saving controlled by channel owners
-- **Universal App**: Native support for iOS and macOS
-- **Cover Traffic**: Timing obfuscation and dummy messages for enhanced privacy
-- **Emergency Wipe**: Triple-tap to instantly clear all data
-- **Performance Optimizations**: LZ4 message compression, adaptive battery modes, and optimized networking
+## Project Purpose
 
-## Setup
+BitShare transforms Jack Dorsey's secure mesh chat protocol into a powerful file sharing platform. While preserving all the privacy and security features of the original bitchat, BitShare extends the capability to:
 
-### Option 1: Using XcodeGen (Recommended)
+- **Share Files Securely**: Transfer documents, images, and media over encrypted mesh networks
+- **Work Offline**: No internet or cellular connection required - pure peer-to-peer communication
+- **Maintain Privacy**: No servers, no tracking, no data collection - your files stay between you and your intended recipients
+- **Scale Across Distance**: Multi-hop relay allows file sharing across extended ranges through mesh networking
 
-1. Install XcodeGen if you haven't already:
-   ```bash
-   brew install xcodegen
-   ```
+## Key Features
 
-2. Generate the Xcode project:
-   ```bash
-   cd bitchat
-   xcodegen generate
-   ```
-
-3. Open the generated project:
-   ```bash
-   open bitchat.xcodeproj
-   ```
-
-### Option 2: Using Swift Package Manager
-
-1. Open the project in Xcode:
-   ```bash
-   cd bitchat
-   open Package.swift
-   ```
-
-2. Select your target device and run
-
-### Option 3: Manual Xcode Project
-
-1. Open Xcode and create a new iOS/macOS App
-2. Copy all Swift files from the `bitchat` directory into your project
-3. Update Info.plist with Bluetooth permissions
-4. Set deployment target to iOS 16.0 / macOS 13.0
-
-## Usage
-
-### Basic Commands
-
-- `/j #channel` - Join or create a channel
-- `/m @name message` - Send a private message
-- `/w` - List online users
-- `/channels` - Show all discovered channels
-- `/block @name` - Block a peer from messaging you
-- `/block` - List all blocked peers
-- `/unblock @name` - Unblock a peer
-- `/clear` - Clear chat messages
-- `/pass [password]` - Set/change channel password (owner only)
-- `/transfer @name` - Transfer channel ownership
-- `/save` - Toggle message retention for channel (owner only)
-
-### Getting Started
-
-1. Launch bitchat on your device
-2. Set your nickname (or use the auto-generated one)
-3. You'll automatically connect to nearby peers
-4. Join a channel with `/j #general` or start chatting in public
-5. Messages relay through the mesh network to reach distant peers
-
-### Channel Features
-
-- **Password Protection**: Channel owners can set passwords with `/pass`
-- **Message Retention**: Owners can enable mandatory message saving with `/save`
-- **@ Mentions**: Use `@nickname` to mention users (with autocomplete)
-- **Ownership Transfer**: Pass control to trusted users with `/transfer`
-
-## Security & Privacy
-
-### Encryption
-- **Private Messages**: X25519 key exchange + AES-256-GCM encryption
-- **Channel Messages**: Argon2id password derivation + AES-256-GCM
-- **Digital Signatures**: Ed25519 for message authenticity
-- **Forward Secrecy**: New key pairs generated each session
-
-### Privacy Features
+### 🔒 **Privacy & Security** (Inherited from bitchat)
+- **End-to-End Encryption**: X25519 key exchange + AES-256-GCM for all transfers
 - **No Registration**: No accounts, emails, or phone numbers required
-- **Ephemeral by Default**: Messages exist only in device memory
-- **Cover Traffic**: Random delays and dummy messages prevent traffic analysis
-- **Emergency Wipe**: Triple-tap logo to instantly clear all data
+- **Ephemeral by Default**: Files exist only during transfer unless explicitly saved
+- **Emergency Wipe**: Triple-tap to instantly clear all data
 - **Local-First**: Works completely offline, no servers involved
 
-## Performance & Efficiency
+### 📂 **File Sharing Capabilities** (BitShare Extensions)
+- **Multiple File Types**: Documents, images, videos, archives
+- **Progressive Transfer**: Resume interrupted transfers automatically
+- **Compression**: Automatic file compression for faster transfers
+- **Batch Operations**: Share multiple files simultaneously
+- **File Integrity**: Cryptographic verification of transfer completion
 
-### Message Compression
-- **LZ4 Compression**: Automatic compression for messages >100 bytes
-- **30-70% bandwidth savings** on typical text messages
-- **Smart compression**: Skips already-compressed data
+### 🌐 **Mesh Networking** (Built on bitchat foundation)
+- **Decentralized Mesh Network**: Automatic peer discovery and multi-hop file relay
+- **Store & Forward**: Files cached for offline peers and delivered when they reconnect
+- **Extended Range**: Reach distant peers through mesh relay (300m+ effective range)
+- **Battery Optimization**: Adaptive power management for extended operation
 
-### Battery Optimization
-- **Adaptive Power Modes**: Automatically adjusts based on battery level
-  - Performance mode: Full features when charging or >60% battery
-  - Balanced mode: Default operation (30-60% battery)
-  - Power saver: Reduced scanning when <30% battery
-  - Ultra-low power: Emergency mode when <10% battery
-- **Background efficiency**: Automatic power saving when app backgrounded
-- **Configurable scanning**: Duty cycle adapts to battery state
-
-### Network Efficiency
-- **Optimized Bloom filters**: Faster duplicate detection with less memory
-- **Message aggregation**: Batches small messages to reduce transmissions
-- **Adaptive connection limits**: Adjusts peer connections based on power mode
+### 🚀 **Performance Features**
+- **LZ4 Compression**: 30-70% bandwidth savings on typical files
+- **Adaptive Power Modes**: Battery-aware operation with multiple power levels
+- **Background Transfers**: Continue sharing when app is backgrounded
+- **Smart Retry**: Automatic retry with exponential backoff for failed transfers
 
 ## Technical Architecture
 
-### Binary Protocol
-bitchat uses an efficient binary protocol optimized for Bluetooth LE:
-- Compact packet format with 1-byte type field
-- TTL-based message routing (max 7 hops)
-- Automatic fragmentation for large messages
-- Message deduplication via unique IDs
+BitShare builds upon bitchat's proven technical foundation:
 
-### Mesh Networking
-- Each device acts as both client and peripheral
-- Automatic peer discovery and connection management
-- Store-and-forward for offline message delivery
-- Adaptive duty cycling for battery optimization
+### Inherited from bitchat:
+- **Binary Protocol**: Efficient packet format optimized for Bluetooth LE
+- **Mesh Networking**: Multi-hop routing with TTL-based forwarding
+- **Encryption Stack**: X25519 + AES-256-GCM + Ed25519 signatures
+- **Privacy Features**: Cover traffic, timing obfuscation, ephemeral identities
 
-For detailed protocol documentation, see the [Technical Whitepaper](WHITEPAPER.md).
+### BitShare Extensions:
+- **File Transfer Protocol**: Chunked transfer with integrity verification
+- **Progress Tracking**: Real-time transfer status and completion tracking  
+- **Resume Capability**: Automatic retry and resume for interrupted transfers
+- **Compression Layer**: Intelligent compression based on file type and size
 
-## Building for Production
+## Quick Start
 
+### Prerequisites
+- iOS 16.0+ / macOS 13.0+
+- Xcode 14.0+
+- XcodeGen (recommended): `brew install xcodegen`
+
+### Setup Instructions
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/the9ines/bitshare.git
+   cd bitshare
+   ```
+
+2. **Run the renaming script** (if needed):
+   ```bash
+   ./rename_to_bitshare.sh
+   ```
+
+3. **Generate Xcode project**:
+   ```bash
+   xcodegen generate
+   ```
+
+4. **Open in Xcode**:
+   ```bash
+   open bitshare.xcodeproj
+   ```
+
+5. **Update Development Team**:
+   - Open `project.yml`
+   - Change `DEVELOPMENT_TEAM: L3N5LHJD5Y` to your team ID
+   - Run `xcodegen generate` again
+
+6. **Build and Run**:
+   - Select your target device
+   - Build and run the project
+
+## Usage
+
+### Basic File Sharing
+1. Launch BitShare on your device
+2. Set your nickname or use the auto-generated one
+3. You'll automatically connect to nearby BitShare users
+4. Select files to share using the interface
+5. Choose recipients from discovered peers
+6. Files transfer automatically through the mesh network
+
+### Advanced Features
+- **Batch Sharing**: Select multiple files for simultaneous transfer
+- **Resume Transfers**: Interrupted transfers automatically resume when peers reconnect
+- **File Organization**: Organize shared files into collections or topics
+- **Transfer History**: Track completed and pending transfers
+
+## Development
+
+### Project Structure
+```
+bitshare/
+├── bitshare/                 # Main app source
+│   ├── BitShareApp.swift     # App entry point  
+│   ├── Protocols/            # Core protocols (inherited from bitchat)
+│   ├── Services/             # Bluetooth, encryption, file transfer
+│   ├── Utils/                # Utilities and helpers
+│   ├── ViewModels/           # MVVM view models
+│   └── Views/                # SwiftUI views
+├── bitshareShareExtension/   # iOS Share Extension
+└── bitshareTests/           # Unit tests
+```
+
+### Key Components
+- **File Transfer Service**: Manages chunked file transfers with progress tracking
+- **Mesh Network Service**: Inherited from bitchat - handles peer discovery and routing
+- **Encryption Service**: Inherited from bitchat - manages end-to-end encryption
+- **Storage Service**: Manages temporary file storage and cleanup
+
+### Building for Production
 1. Set your development team in project settings
 2. Configure code signing
-3. Archive and distribute through App Store or TestFlight
+3. Update bundle identifiers to your domain
+4. Archive and distribute through App Store or TestFlight
 
-## Android Compatibility
+## Contributing
 
-The protocol is designed to be platform-agnostic. An Android client can be built using:
-- Bluetooth LE APIs
-- Same packet structure and encryption
-- Compatible service/characteristic UUIDs
+We welcome contributions to BitShare! Please:
+
+1. **Respect the Foundation**: Maintain compatibility with bitchat's core protocol
+2. **Preserve Privacy**: Any new features must maintain the privacy-first approach
+3. **Test Thoroughly**: Ensure new features work across the mesh network
+4. **Follow Conventions**: Use the established code style and architecture
+
+## License
+
+This project is released into the public domain, following the original bitchat license. See the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- **Jack Dorsey** ([@jackjackbits](https://github.com/jackjackbits)) - Creator of the original bitchat protocol and mesh networking foundation
+- **The bitchat community** - For the robust, privacy-focused communication protocol
+- **The9ines** - For extending the platform to enable secure file sharing
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/the9ines/bitshare/issues)
+- **Documentation**: [Technical Whitepaper](WHITEPAPER.md)
+- **Privacy**: [Privacy Policy](PRIVACY_POLICY.md)
+
+---
+
+*BitShare: Building on Jack Dorsey's vision of decentralized communication to enable secure, private file sharing for everyone.*
