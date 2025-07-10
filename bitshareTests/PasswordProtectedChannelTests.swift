@@ -1,6 +1,6 @@
 //
 // PasswordProtectedChannelTests.swift
-// BitShareTests
+// bitshareTests
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -156,7 +156,7 @@ class PasswordProtectedChannelTests: XCTestCase {
             let sealedBox = try AES.GCM.seal(messageData, using: key)
             let encryptedData = sealedBox.combined!
             
-            let encryptedMsg = BitShareMessage(
+            let encryptedMsg = bitshareMessage(
                 sender: "alice",
                 content: "[Encrypted message - password required]",
                 timestamp: Date(),
@@ -298,7 +298,7 @@ class PasswordProtectedChannelTests: XCTestCase {
         let _ = viewModel.joinChannel(channelName)
         
         // Simulate receiving encrypted message
-        let encryptedMessage = BitShareMessage(
+        let encryptedMessage = bitshareMessage(
             sender: "alice",
             content: "[Encrypted message - password required]",
             timestamp: Date(),

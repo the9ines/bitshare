@@ -35,7 +35,7 @@ struct AppInfoView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(alignment: .center, spacing: 8) {
-                        Text("BitShare*")
+                        Text("bitshare*")
                             .font(.system(size: 32, weight: .bold, design: .monospaced))
                             .foregroundColor(textColor)
                         
@@ -161,7 +161,7 @@ struct AppInfoView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     // Header
                     VStack(alignment: .center, spacing: 8) {
-                        Text("BitShare*")
+                        Text("bitshare*")
                             .font(.system(size: 32, weight: .bold, design: .monospaced))
                             .foregroundColor(textColor)
                         

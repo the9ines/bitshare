@@ -1,6 +1,6 @@
 //
-// BitShareApp.swift
-// BitShare
+// bitshareApp.swift
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -10,7 +10,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct BitShareApp: App {
+struct bitshareApp: App {
     @StateObject private var chatViewModel = ChatViewModel()
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -86,7 +86,7 @@ struct BitShareApp: App {
             // Show notification about shared content
             DispatchQueue.main.async {
                 // Add system message about sharing
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "preparing to share \(contentType)...",
                     timestamp: Date(),

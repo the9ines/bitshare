@@ -1,4 +1,4 @@
-# BitShare
+# bitshare
 
 > **Secure Decentralized File Sharing Over Bluetooth Mesh Networks**
 
@@ -6,15 +6,15 @@ A privacy-first, decentralized file sharing application that works over Bluetoot
 
 ## Attribution
 
-BitShare is built upon the foundation of **bitchat** by [Jack Dorsey](https://github.com/jack) ([@jackjackbits](https://github.com/jackjackbits)). We extend our deep gratitude to Jack for creating the innovative mesh networking protocol and secure communication foundation that makes BitShare possible.
+bitshare is built upon the foundation of **bitchat** by [Jack Dorsey](https://github.com/jack) ([@jackjackbits](https://github.com/jackjackbits)). We extend our deep gratitude to Jack for creating the innovative mesh networking protocol and secure communication foundation that makes bitshare possible.
 
 - **Original Project**: [bitchat](https://github.com/jackjackbits/bitchat) 
 - **Original Author**: Jack Dorsey
-- **BitShare Fork**: Adapted for secure file sharing use cases
+- **bitshare Fork**: Adapted for secure file sharing use cases
 
 ## Project Purpose
 
-BitShare transforms Jack Dorsey's secure mesh chat protocol into a powerful file sharing platform. While preserving all the privacy and security features of the original bitchat, BitShare extends the capability to:
+bitshare transforms Jack Dorsey's secure mesh chat protocol into a powerful file sharing platform. While preserving all the privacy and security features of the original bitchat, bitshare extends the capability to:
 
 - **Share Files Securely**: Transfer documents, images, and media over encrypted mesh networks
 - **Work Offline**: No internet or cellular connection required - pure peer-to-peer communication
@@ -30,7 +30,7 @@ BitShare transforms Jack Dorsey's secure mesh chat protocol into a powerful file
 - **Emergency Wipe**: Triple-tap to instantly clear all data
 - **Local-First**: Works completely offline, no servers involved
 
-### 📂 **File Sharing Capabilities** (BitShare Extensions)
+### 📂 **File Sharing Capabilities** (bitshare Extensions)
 - **Multiple File Types**: Documents, images, videos, archives
 - **Progressive Transfer**: Resume interrupted transfers automatically
 - **Compression**: Automatic file compression for faster transfers
@@ -51,7 +51,7 @@ BitShare transforms Jack Dorsey's secure mesh chat protocol into a powerful file
 
 ## Technical Architecture
 
-BitShare builds upon bitchat's proven technical foundation:
+bitshare builds upon bitchat's proven technical foundation:
 
 ### Inherited from bitchat:
 - **Binary Protocol**: Efficient packet format optimized for Bluetooth LE
@@ -59,7 +59,7 @@ BitShare builds upon bitchat's proven technical foundation:
 - **Encryption Stack**: X25519 + AES-256-GCM + Ed25519 signatures
 - **Privacy Features**: Cover traffic, timing obfuscation, ephemeral identities
 
-### BitShare Extensions:
+### bitshare Extensions:
 - **File Transfer Protocol**: Chunked transfer with integrity verification
 - **Progress Tracking**: Real-time transfer status and completion tracking  
 - **Resume Capability**: Automatic retry and resume for interrupted transfers
@@ -107,9 +107,9 @@ BitShare builds upon bitchat's proven technical foundation:
 ## Usage
 
 ### Basic File Sharing
-1. Launch BitShare on your device
+1. Launch bitshare on your device
 2. Set your nickname or use the auto-generated one
-3. You'll automatically connect to nearby BitShare users
+3. You'll automatically connect to nearby bitshare users
 4. Select files to share using the interface
 5. Choose recipients from discovered peers
 6. Files transfer automatically through the mesh network
@@ -126,7 +126,7 @@ BitShare builds upon bitchat's proven technical foundation:
 ```
 bitshare/
 ├── bitshare/                 # Main app source
-│   ├── BitShareApp.swift     # App entry point  
+│   ├── bitshareApp.swift     # App entry point  
 │   ├── Protocols/            # Core protocols (inherited from bitchat)
 │   ├── Services/             # Bluetooth, encryption, file transfer
 │   ├── Utils/                # Utilities and helpers
@@ -150,7 +150,7 @@ bitshare/
 
 ## Contributing
 
-We welcome contributions to BitShare! Please:
+We welcome contributions to bitshare! Please:
 
 1. **Respect the Foundation**: Maintain compatibility with bitchat's core protocol
 2. **Preserve Privacy**: Any new features must maintain the privacy-first approach
@@ -175,4 +175,4 @@ This project is released into the public domain, following the original bitchat 
 
 ---
 
-*BitShare: Building on Jack Dorsey's vision of decentralized communication to enable secure, private file sharing for everyone.*
+*bitshare: Building on Jack Dorsey's vision of decentralized communication to enable secure, private file sharing for everyone.*

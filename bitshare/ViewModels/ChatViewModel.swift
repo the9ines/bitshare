@@ -1,6 +1,6 @@
 //
 // ChatViewModel.swift
-// BitShare
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -16,7 +16,7 @@ import UIKit
 #endif
 
 class ChatViewModel: ObservableObject {
-    @Published var messages: [BitShareMessage] = []
+    @Published var messages: [bitshareMessage] = []
     @Published var connectedPeers: [String] = []
     @Published var nickname: String = "" {
         didSet {
@@ -27,7 +27,7 @@ class ChatViewModel: ObservableObject {
         }
     }
     @Published var isConnected = false
-    @Published var privateChats: [String: [BitShareMessage]] = [:] // peerID -> messages
+    @Published var privateChats: [String: [bitshareMessage]] = [:] // peerID -> messages
     @Published var selectedPrivateChatPeer: String? = nil
     @Published var unreadPrivateMessages: Set<String> = []
     @Published var autocompleteSuggestions: [String] = []
@@ -38,7 +38,7 @@ class ChatViewModel: ObservableObject {
     // Channel support
     @Published var joinedChannels: Set<String> = []  // Set of channel hashtags
     @Published var currentChannel: String? = nil  // Currently selected channel
-    @Published var channelMessages: [String: [BitShareMessage]] = [:]  // channel -> messages
+    @Published var channelMessages: [String: [bitshareMessage]] = [:]  // channel -> messages
     @Published var unreadChannelMessages: [String: Int] = [:]  // channel -> unread count
     @Published var channelMembers: [String: Set<String>] = [:]  // channel -> set of peer IDs who have sent messages
     @Published var channelPasswords: [String: String] = [:]  // channel -> password (stored locally only)
@@ -105,7 +105,7 @@ class ChatViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             guard let self = self else { return }
             if self.connectedPeers.isEmpty && self.messages.isEmpty {
-                let welcomeMessage = BitShareMessage(
+                let welcomeMessage = bitshareMessage(
                     sender: "system",
                     content: "get people around you to download bitchat…and chat with them here!",
                     timestamp: Date(),
@@ -344,7 +344,7 @@ class ChatViewModel: ObservableObject {
                         // No encrypted messages yet - accept tentatively
                         
                         // Add warning message
-                        let warningMsg = BitShareMessage(
+                        let warningMsg = bitshareMessage(
                             sender: "system",
                             content: "joined channel \(channelTag). password will be verified when encrypted messages arrive.",
                             timestamp: Date(),
@@ -356,7 +356,7 @@ class ChatViewModel: ObservableObject {
                     // Empty channel - accept tentatively
                     
                     // Add info message
-                    let infoMsg = BitShareMessage(
+                    let infoMsg = bitshareMessage(
                         sender: "system",
                         content: "joined empty channel \(channelTag). waiting for encrypted messages to verify password.",
                         timestamp: Date(),
@@ -543,7 +543,7 @@ class ChatViewModel: ObservableObject {
     // Transfer channel ownership to another user
     func transferChannelOwnership(to nickname: String) {
         guard let currentChannel = currentChannel else {
-            let msg = BitShareMessage(
+            let msg = bitshareMessage(
                 sender: "system",
                 content: "you must be in a channel to transfer ownership.",
                 timestamp: Date(),
@@ -555,7 +555,7 @@ class ChatViewModel: ObservableObject {
         
         // Check if current user is the owner
         guard channelCreators[currentChannel] == meshService.myPeerID else {
-            let msg = BitShareMessage(
+            let msg = bitshareMessage(
                 sender: "system",
                 content: "only the channel owner can transfer ownership.",
                 timestamp: Date(),
@@ -570,7 +570,7 @@ class ChatViewModel: ObservableObject {
         
         // Find peer ID for the nickname
         guard let targetPeerID = getPeerIDForNickname(targetNick) else {
-            let msg = BitShareMessage(
+            let msg = bitshareMessage(
                 sender: "system",
                 content: "user \(targetNick) not found. they must be online to receive ownership.",
                 timestamp: Date(),
@@ -591,7 +591,7 @@ class ChatViewModel: ObservableObject {
         }
         
         // Send notification message
-        let transferMsg = BitShareMessage(
+        let transferMsg = bitshareMessage(
             sender: "system",
             content: "channel ownership transferred from \(self.nickname) to \(targetNick).",
             timestamp: Date(),
@@ -613,7 +613,7 @@ class ChatViewModel: ObservableObject {
     // Change password for current channel
     func changeChannelPassword(to newPassword: String) {
         guard let currentChannel = currentChannel else {
-            let msg = BitShareMessage(
+            let msg = bitshareMessage(
                 sender: "system",
                 content: "you must be in a channel to change its password.",
                 timestamp: Date(),
@@ -625,7 +625,7 @@ class ChatViewModel: ObservableObject {
         
         // Check if current user is the owner
         guard channelCreators[currentChannel] == meshService.myPeerID else {
-            let msg = BitShareMessage(
+            let msg = bitshareMessage(
                 sender: "system",
                 content: "only the channel owner can change the password.",
                 timestamp: Date(),
@@ -637,7 +637,7 @@ class ChatViewModel: ObservableObject {
         
         // Check if channel is currently password protected
         guard passwordProtectedChannels.contains(currentChannel) else {
-            let msg = BitShareMessage(
+            let msg = bitshareMessage(
                 sender: "system",
                 content: "channel is not password protected. use the lock button to set a password.",
                 timestamp: Date(),
@@ -690,7 +690,7 @@ class ChatViewModel: ObservableObject {
         meshService.announcePasswordProtectedChannel(currentChannel, creatorID: meshService.myPeerID, keyCommitment: newCommitment)
         
         // Add local success message
-        let successMsg = BitShareMessage(
+        let successMsg = bitshareMessage(
             sender: "system",
             content: "password changed successfully. other users will need to re-enter the new password.",
             timestamp: Date(),
@@ -754,7 +754,7 @@ class ChatViewModel: ObservableObject {
         }
     }
     
-    func getChannelMessages(_ channel: String) -> [BitShareMessage] {
+    func getChannelMessages(_ channel: String) -> [bitshareMessage] {
         return channelMessages[channel] ?? []
     }
     
@@ -863,7 +863,7 @@ class ChatViewModel: ObservableObject {
             let messageChannel = currentChannel  // Use current channel if we're in one
             
             // Add message to local display
-            let message = BitShareMessage(
+            let message = bitshareMessage(
                 sender: nickname,
                 content: content,
                 timestamp: Date(),
@@ -922,7 +922,7 @@ class ChatViewModel: ObservableObject {
         
         // Check if the recipient is blocked
         if isPeerBlocked(peerID) {
-            let systemMessage = BitShareMessage(
+            let systemMessage = bitshareMessage(
                 sender: "system",
                 content: "cannot send message to \(recipientNickname): user is blocked.",
                 timestamp: Date(),
@@ -937,7 +937,7 @@ class ChatViewModel: ObservableObject {
         markPrivateMessagesAsRead(from: peerID)
         
         // Create the message locally
-        let message = BitShareMessage(
+        let message = bitshareMessage(
             sender: nickname,
             content: content,
             timestamp: Date(),
@@ -971,7 +971,7 @@ class ChatViewModel: ObservableObject {
         
         // Check if the peer is blocked
         if isPeerBlocked(peerID) {
-            let systemMessage = BitShareMessage(
+            let systemMessage = bitshareMessage(
                 sender: "system",
                 content: "cannot start chat with \(peerNickname): user is blocked.",
                 timestamp: Date(),
@@ -989,7 +989,7 @@ class ChatViewModel: ObservableObject {
         if privateChats[peerID] == nil || privateChats[peerID]?.isEmpty == true {
             
             // Look for messages from this nickname under other peer IDs
-            var migratedMessages: [BitShareMessage] = []
+            var migratedMessages: [bitshareMessage] = []
             var oldPeerIDsToRemove: [String] = []
             
             for (oldPeerID, messages) in privateChats {
@@ -1078,7 +1078,7 @@ class ChatViewModel: ObservableObject {
             }
             
             // Show local notification immediately as system message
-            let localNotification = BitShareMessage(
+            let localNotification = bitshareMessage(
                 sender: "system",
                 content: "you took a screenshot",
                 timestamp: Date(),
@@ -1103,7 +1103,7 @@ class ChatViewModel: ObservableObject {
             }
             
             // Show local notification immediately as system message
-            let localNotification = BitShareMessage(
+            let localNotification = bitshareMessage(
                 sender: "system",
                 content: "you took a screenshot",
                 timestamp: Date(),
@@ -1122,7 +1122,7 @@ class ChatViewModel: ObservableObject {
             meshService.sendMessage(screenshotMessage, mentions: [], channel: nil)
             
             // Show local notification immediately as system message
-            let localNotification = BitShareMessage(
+            let localNotification = bitshareMessage(
                 sender: "system",
                 content: "you took a screenshot",
                 timestamp: Date(),
@@ -1206,7 +1206,7 @@ class ChatViewModel: ObservableObject {
         
     }
     
-    func getPrivateChatMessages(for peerID: String) -> [BitShareMessage] {
+    func getPrivateChatMessages(for peerID: String) -> [bitshareMessage] {
         let messages = privateChats[peerID] ?? []
         return messages
     }
@@ -1380,7 +1380,7 @@ class ChatViewModel: ObservableObject {
         return range.location + nickname.count + 2
     }
     
-    func getSenderColor(for message: BitShareMessage, colorScheme: ColorScheme) -> Color {
+    func getSenderColor(for message: bitshareMessage, colorScheme: ColorScheme) -> Color {
         let isDark = colorScheme == .dark
         let primaryColor = isDark ? Color.green : Color(red: 0, green: 0.5, blue: 0)
         
@@ -1395,7 +1395,7 @@ class ChatViewModel: ObservableObject {
     }
     
     
-    func formatMessageContent(_ message: BitShareMessage, colorScheme: ColorScheme) -> AttributedString {
+    func formatMessageContent(_ message: bitshareMessage, colorScheme: ColorScheme) -> AttributedString {
         let isDark = colorScheme == .dark
         let contentText = message.content
         var processedContent = AttributedString()
@@ -1464,7 +1464,7 @@ class ChatViewModel: ObservableObject {
         return processedContent
     }
     
-    func formatMessageAsText(_ message: BitShareMessage, colorScheme: ColorScheme) -> AttributedString {
+    func formatMessageAsText(_ message: bitshareMessage, colorScheme: ColorScheme) -> AttributedString {
         var result = AttributedString()
         
         let isDark = colorScheme == .dark
@@ -1608,7 +1608,7 @@ class ChatViewModel: ObservableObject {
         return result
     }
     
-    func formatMessage(_ message: BitShareMessage, colorScheme: ColorScheme) -> AttributedString {
+    func formatMessage(_ message: bitshareMessage, colorScheme: ColorScheme) -> AttributedString {
         var result = AttributedString()
         
         let isDark = colorScheme == .dark
@@ -1733,7 +1733,7 @@ extension ChatViewModel: BitchatDelegate {
             if !wasAlreadyProtected && joinedChannels.contains(channel) && channelKeys[channel] == nil {
                 
                 // Add system message
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "channel \(channel) is password protected. you need the password to participate.",
                     timestamp: Date(),
@@ -1798,7 +1798,7 @@ extension ChatViewModel: BitchatDelegate {
             }
             
             // Show system message
-            let systemMessage = BitShareMessage(
+            let systemMessage = bitshareMessage(
                 sender: "system",
                 content: "channel owner enabled message retention for \(channel). all messages will be saved locally.",
                 timestamp: Date(),
@@ -1824,7 +1824,7 @@ extension ChatViewModel: BitchatDelegate {
             }
             
             // Show system message
-            let systemMessage = BitShareMessage(
+            let systemMessage = bitshareMessage(
                 sender: "system",
                 content: "channel owner disabled message retention for \(channel). all saved messages have been deleted.",
                 timestamp: Date(),
@@ -1860,7 +1860,7 @@ extension ChatViewModel: BitchatDelegate {
                 let isValidName = !cleanedName.isEmpty && cleanedName.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
                 
                 if !isValidName {
-                    let systemMessage = BitShareMessage(
+                    let systemMessage = bitshareMessage(
                         sender: "system",
                         content: "invalid channel name. use only letters, numbers, and underscores.",
                         timestamp: Date(),
@@ -1880,7 +1880,7 @@ extension ChatViewModel: BitchatDelegate {
                             if !hadCreator && !wasPasswordProtected {
                                 message += " (created new channel - you are the owner)"
                             }
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: message,
                                 timestamp: Date(),
@@ -1889,7 +1889,7 @@ extension ChatViewModel: BitchatDelegate {
                             messages.append(systemMessage)
                         } else {
                             // Already in channel, just switched to it
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: "switched to channel \(channel)",
                                 timestamp: Date(),
@@ -1902,7 +1902,7 @@ extension ChatViewModel: BitchatDelegate {
                 }
             } else {
                 // Show usage hint
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /j #channelname",
                     timestamp: Date(),
@@ -1912,7 +1912,7 @@ extension ChatViewModel: BitchatDelegate {
             }
         case "/create":
             // /create is now just an alias for /join
-            let systemMessage = BitShareMessage(
+            let systemMessage = bitshareMessage(
                 sender: "system",
                 content: "use /join #channelname to join or create a channel",
                 timestamp: Date(),
@@ -1934,7 +1934,7 @@ extension ChatViewModel: BitchatDelegate {
                         let messageContent = parts[2...].joined(separator: " ")
                         sendPrivateMessage(messageContent, to: peerID)
                     } else {
-                        let systemMessage = BitShareMessage(
+                        let systemMessage = bitshareMessage(
                             sender: "system",
                             content: "started private chat with \(nickname)",
                             timestamp: Date(),
@@ -1943,7 +1943,7 @@ extension ChatViewModel: BitchatDelegate {
                         messages.append(systemMessage)
                     }
                 } else {
-                    let systemMessage = BitShareMessage(
+                    let systemMessage = bitshareMessage(
                         sender: "system",
                         content: "user '\(nickname)' not found. they may be offline or using a different nickname.",
                         timestamp: Date(),
@@ -1952,7 +1952,7 @@ extension ChatViewModel: BitchatDelegate {
                     messages.append(systemMessage)
                 }
             } else {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /m @nickname [message] or /m nickname [message]",
                     timestamp: Date(),
@@ -1983,7 +1983,7 @@ extension ChatViewModel: BitchatDelegate {
             allChannels.formUnion(passwordProtectedChannels)
             
             if allChannels.isEmpty {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "no channels discovered yet. channels appear as people use them.",
                     timestamp: Date(),
@@ -2008,7 +2008,7 @@ extension ChatViewModel: BitchatDelegate {
                     return "\(channel)\(status)"
                 }.joined(separator: "\n")
                 
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "discovered channels:\n\(channelList)\n\n✓ = joined, 🔒 = password protected, 📌 = retention enabled",
                     timestamp: Date(),
@@ -2019,7 +2019,7 @@ extension ChatViewModel: BitchatDelegate {
         case "/w":
             let peerNicknames = meshService.getPeerNicknames()
             if connectedPeers.isEmpty {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "no one else is online right now.",
                     timestamp: Date(),
@@ -2031,7 +2031,7 @@ extension ChatViewModel: BitchatDelegate {
                     peerNicknames[peerID]
                 }.sorted().joined(separator: ", ")
                 
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "online users: \(onlineList)",
                     timestamp: Date(),
@@ -2043,7 +2043,7 @@ extension ChatViewModel: BitchatDelegate {
             // Transfer channel ownership
             let parts = command.split(separator: " ", maxSplits: 1).map(String.init)
             if parts.count < 2 {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /transfer @nickname",
                     timestamp: Date(),
@@ -2056,7 +2056,7 @@ extension ChatViewModel: BitchatDelegate {
         case "/pass":
             // Change channel password (only available in channels)
             guard currentChannel != nil else {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "you must be in a channel to use /pass.",
                     timestamp: Date(),
@@ -2067,7 +2067,7 @@ extension ChatViewModel: BitchatDelegate {
             }
             let parts = command.split(separator: " ", maxSplits: 1).map(String.init)
             if parts.count < 2 {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /pass <new password>",
                     timestamp: Date(),
@@ -2092,7 +2092,7 @@ extension ChatViewModel: BitchatDelegate {
         case "/save":
             // Toggle retention for current channel (owner only)
             guard let channel = currentChannel else {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "you must be in a channel to toggle message retention.",
                     timestamp: Date(),
@@ -2104,7 +2104,7 @@ extension ChatViewModel: BitchatDelegate {
             
             // Check if user is the channel owner
             guard channelCreators[channel] == meshService.myPeerID else {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "only the channel owner can toggle message retention.",
                     timestamp: Date(),
@@ -2126,7 +2126,7 @@ extension ChatViewModel: BitchatDelegate {
                 // Announce to all members that retention is enabled
                 meshService.sendChannelRetentionAnnouncement(channel, enabled: true)
                 
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "message retention enabled for channel \(channel). all members will save messages locally.",
                     timestamp: Date(),
@@ -2163,7 +2163,7 @@ extension ChatViewModel: BitchatDelegate {
                 // Announce to all members that retention is disabled
                 meshService.sendChannelRetentionAnnouncement(channel, enabled: false)
                 
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "message retention disabled for channel \(channel). all saved messages will be deleted on all devices.",
                     timestamp: Date(),
@@ -2183,7 +2183,7 @@ extension ChatViewModel: BitchatDelegate {
                 // Check if target exists in connected peers
                 if let targetPeerID = getPeerIDForNickname(nickname) {
                     // Create hug message
-                    let hugMessage = BitShareMessage(
+                    let hugMessage = bitshareMessage(
                         sender: "system",
                         content: "🫂 \(self.nickname) hugs \(nickname)",
                         timestamp: Date(),
@@ -2214,7 +2214,7 @@ extension ChatViewModel: BitchatDelegate {
                         messages.append(hugMessage)
                     }
                 } else {
-                    let errorMessage = BitShareMessage(
+                    let errorMessage = bitshareMessage(
                         sender: "system",
                         content: "cannot hug \(nickname): user not found.",
                         timestamp: Date(),
@@ -2223,7 +2223,7 @@ extension ChatViewModel: BitchatDelegate {
                     messages.append(errorMessage)
                 }
             } else {
-                let usageMessage = BitShareMessage(
+                let usageMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /hug <nickname>",
                     timestamp: Date(),
@@ -2241,7 +2241,7 @@ extension ChatViewModel: BitchatDelegate {
                 // Check if target exists in connected peers
                 if let targetPeerID = getPeerIDForNickname(nickname) {
                     // Create slap message
-                    let slapMessage = BitShareMessage(
+                    let slapMessage = bitshareMessage(
                         sender: "system",
                         content: "🐟 \(self.nickname) slaps \(nickname) around a bit with a large trout",
                         timestamp: Date(),
@@ -2272,7 +2272,7 @@ extension ChatViewModel: BitchatDelegate {
                         messages.append(slapMessage)
                     }
                 } else {
-                    let errorMessage = BitShareMessage(
+                    let errorMessage = bitshareMessage(
                         sender: "system",
                         content: "cannot slap \(nickname): user not found.",
                         timestamp: Date(),
@@ -2281,7 +2281,7 @@ extension ChatViewModel: BitchatDelegate {
                     messages.append(errorMessage)
                 }
             } else {
-                let usageMessage = BitShareMessage(
+                let usageMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /slap <nickname>",
                     timestamp: Date(),
@@ -2308,7 +2308,7 @@ extension ChatViewModel: BitchatDelegate {
                         let fingerprintStr = String(fingerprint)
                         
                         if blockedUsers.contains(fingerprintStr) {
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: "\(nickname) is already blocked.",
                                 timestamp: Date(),
@@ -2325,7 +2325,7 @@ extension ChatViewModel: BitchatDelegate {
                                 saveFavorites()
                             }
                             
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: "blocked \(nickname). you will no longer receive messages from them.",
                                 timestamp: Date(),
@@ -2334,7 +2334,7 @@ extension ChatViewModel: BitchatDelegate {
                             messages.append(systemMessage)
                         }
                     } else {
-                        let systemMessage = BitShareMessage(
+                        let systemMessage = bitshareMessage(
                             sender: "system",
                             content: "cannot block \(nickname): unable to verify identity.",
                             timestamp: Date(),
@@ -2343,7 +2343,7 @@ extension ChatViewModel: BitchatDelegate {
                         messages.append(systemMessage)
                     }
                 } else {
-                    let systemMessage = BitShareMessage(
+                    let systemMessage = bitshareMessage(
                         sender: "system",
                         content: "cannot block \(nickname): user not found.",
                         timestamp: Date(),
@@ -2354,7 +2354,7 @@ extension ChatViewModel: BitchatDelegate {
             } else {
                 // List blocked users
                 if blockedUsers.isEmpty {
-                    let systemMessage = BitShareMessage(
+                    let systemMessage = bitshareMessage(
                         sender: "system",
                         content: "no blocked peers.",
                         timestamp: Date(),
@@ -2381,7 +2381,7 @@ extension ChatViewModel: BitchatDelegate {
                     }
                     
                     let blockedList = blockedNicknames.isEmpty ? "blocked peers (not currently online)" : blockedNicknames.sorted().joined(separator: ", ")
-                    let systemMessage = BitShareMessage(
+                    let systemMessage = bitshareMessage(
                         sender: "system",
                         content: "blocked peers: \(blockedList)",
                         timestamp: Date(),
@@ -2412,7 +2412,7 @@ extension ChatViewModel: BitchatDelegate {
                             blockedUsers.remove(fingerprintStr)
                             saveBlockedUsers()
                             
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: "unblocked \(nickname).",
                                 timestamp: Date(),
@@ -2420,7 +2420,7 @@ extension ChatViewModel: BitchatDelegate {
                             )
                             messages.append(systemMessage)
                         } else {
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: "\(nickname) is not blocked.",
                                 timestamp: Date(),
@@ -2429,7 +2429,7 @@ extension ChatViewModel: BitchatDelegate {
                             messages.append(systemMessage)
                         }
                     } else {
-                        let systemMessage = BitShareMessage(
+                        let systemMessage = bitshareMessage(
                             sender: "system",
                             content: "cannot unblock \(nickname): unable to verify identity.",
                             timestamp: Date(),
@@ -2438,7 +2438,7 @@ extension ChatViewModel: BitchatDelegate {
                         messages.append(systemMessage)
                     }
                 } else {
-                    let systemMessage = BitShareMessage(
+                    let systemMessage = bitshareMessage(
                         sender: "system",
                         content: "cannot unblock \(nickname): user not found.",
                         timestamp: Date(),
@@ -2447,7 +2447,7 @@ extension ChatViewModel: BitchatDelegate {
                     messages.append(systemMessage)
                 }
             } else {
-                let systemMessage = BitShareMessage(
+                let systemMessage = bitshareMessage(
                     sender: "system",
                     content: "usage: /unblock <nickname>",
                     timestamp: Date(),
@@ -2458,7 +2458,7 @@ extension ChatViewModel: BitchatDelegate {
             
         default:
             // Unknown command
-            let systemMessage = BitShareMessage(
+            let systemMessage = bitshareMessage(
                 sender: "system",
                 content: "unknown command: \(cmd).",
                 timestamp: Date(),
@@ -2468,7 +2468,7 @@ extension ChatViewModel: BitchatDelegate {
         }
     }
     
-    func didReceiveMessage(_ message: BitShareMessage) {
+    func didReceiveMessage(_ message: bitshareMessage) {
         
         // Check if sender is blocked (for both private and public messages)
         if let senderPeerID = message.senderPeerID {
@@ -2496,7 +2496,7 @@ extension ChatViewModel: BitchatDelegate {
                 let senderNickname = message.sender
                 if privateChats[peerID] == nil || privateChats[peerID]?.isEmpty == true {
                     // Check if we have messages from this nickname under a different peer ID
-                    var migratedMessages: [BitShareMessage] = []
+                    var migratedMessages: [bitshareMessage] = []
                     var oldPeerIDsToRemove: [String] = []
                     
                     for (oldPeerID, messages) in privateChats {
@@ -2545,7 +2545,7 @@ extension ChatViewModel: BitchatDelegate {
                 
                 if isActionMessage {
                     // Convert to system message
-                    messageToStore = BitShareMessage(
+                    messageToStore = bitshareMessage(
                         id: messageToStore.id,
                         sender: "system",
                         content: String(messageToStore.content.dropFirst(2).dropLast(2)), // Remove * * wrapper
@@ -2610,7 +2610,7 @@ extension ChatViewModel: BitchatDelegate {
                         saveChannelData()
                         
                         // Add a system message to indicate the channel is password protected (only once)
-                        let systemMessage = BitShareMessage(
+                        let systemMessage = bitshareMessage(
                             sender: "system",
                             content: "channel \(channel) is password protected. you need the password to read messages.",
                             timestamp: Date(),
@@ -2640,7 +2640,7 @@ extension ChatViewModel: BitchatDelegate {
                             if isFirstEncryptedMessage {
                                 
                                 // Add success message
-                                let verifiedMsg = BitShareMessage(
+                                let verifiedMsg = bitshareMessage(
                                     sender: "system",
                                     content: "password verified successfully for channel \(channel).",
                                     timestamp: Date(),
@@ -2650,7 +2650,7 @@ extension ChatViewModel: BitchatDelegate {
                             }
                             
                             // Create a new message with decrypted content
-                            let decryptedMessage = BitShareMessage(
+                            let decryptedMessage = bitshareMessage(
                                 sender: message.sender,
                                 content: decryptedContent,
                                 timestamp: message.timestamp,
@@ -2692,7 +2692,7 @@ extension ChatViewModel: BitchatDelegate {
                                 }
                                 
                                 // Add error message
-                                let errorMsg = BitShareMessage(
+                                let errorMsg = bitshareMessage(
                                     sender: "system",
                                     content: "wrong password for channel \(channel). you have been removed from the channel.",
                                     timestamp: Date(),
@@ -2705,7 +2705,7 @@ extension ChatViewModel: BitchatDelegate {
                             }
                             
                             // Add system message for subsequent failures
-                            let systemMessage = BitShareMessage(
+                            let systemMessage = bitshareMessage(
                                 sender: "system",
                                 content: "wrong password for channel \(channel). please enter the correct password.",
                                 timestamp: Date(),
@@ -2727,10 +2727,10 @@ extension ChatViewModel: BitchatDelegate {
                                       (messageToAdd.content.contains("🫂") || messageToAdd.content.contains("🐟") || 
                                        messageToAdd.content.contains("took a screenshot"))
                 
-                let finalMessage: BitShareMessage
+                let finalMessage: bitshareMessage
                 if isActionMessage {
                     // Convert to system message
-                    finalMessage = BitShareMessage(
+                    finalMessage = bitshareMessage(
                         sender: "system",
                         content: String(messageToAdd.content.dropFirst(2).dropLast(2)), // Remove * * wrapper
                         timestamp: messageToAdd.timestamp,
@@ -2816,10 +2816,10 @@ extension ChatViewModel: BitchatDelegate {
                                   (message.content.contains("🫂") || message.content.contains("🐟") || 
                                    message.content.contains("took a screenshot"))
             
-            let finalMessage: BitShareMessage
+            let finalMessage: bitshareMessage
             if isActionMessage {
                 // Convert to system message
-                finalMessage = BitShareMessage(
+                finalMessage = bitshareMessage(
                     sender: "system",
                     content: String(message.content.dropFirst(2).dropLast(2)), // Remove * * wrapper
                     timestamp: message.timestamp,
@@ -2972,7 +2972,7 @@ extension ChatViewModel: BitchatDelegate {
     
     func didConnectToPeer(_ peerID: String) {
         isConnected = true
-        let systemMessage = BitShareMessage(
+        let systemMessage = bitshareMessage(
             sender: "system",
             content: "\(peerID) connected",
             timestamp: Date(),
@@ -2986,7 +2986,7 @@ extension ChatViewModel: BitchatDelegate {
     }
     
     func didDisconnectFromPeer(_ peerID: String) {
-        let systemMessage = BitShareMessage(
+        let systemMessage = bitshareMessage(
             sender: "system",
             content: "\(peerID) disconnected",
             timestamp: Date(),

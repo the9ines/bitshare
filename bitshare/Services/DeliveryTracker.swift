@@ -1,6 +1,6 @@
 //
 // DeliveryTracker.swift
-// BitShare
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -67,7 +67,7 @@ class DeliveryTracker {
     
     // MARK: - Public Methods
     
-    func trackMessage(_ message: BitShareMessage, recipientID: String, recipientNickname: String, isFavorite: Bool = false, expectedRecipients: Int = 1) {
+    func trackMessage(_ message: bitshareMessage, recipientID: String, recipientNickname: String, isFavorite: Bool = false, expectedRecipients: Int = 1) {
         // Don't track broadcasts or certain message types
         guard message.isPrivate || message.channel != nil else { return }
         
@@ -141,7 +141,7 @@ class DeliveryTracker {
         }
     }
     
-    func generateAck(for message: BitShareMessage, myPeerID: String, myNickname: String, hopCount: UInt8) -> DeliveryAck? {
+    func generateAck(for message: bitshareMessage, myPeerID: String, myNickname: String, hopCount: UInt8) -> DeliveryAck? {
         // Don't ACK our own messages
         guard message.senderPeerID != myPeerID else { return nil }
         

@@ -1,6 +1,6 @@
 //
 // BluetoothMeshService.swift
-// BitShare
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -504,7 +504,7 @@ class BluetoothMeshService: NSObject {
             let nickname = self.delegate as? ChatViewModel
             let senderNick = nickname?.nickname ?? self.myPeerID
             
-            let message = BitShareMessage(
+            let message = bitshareMessage(
                 id: messageID,
                 sender: senderNick,
                 content: content,
@@ -589,7 +589,7 @@ class BluetoothMeshService: NSObject {
             // Use provided message ID or generate a new one
             let msgID = messageID ?? UUID().uuidString
             
-            let message = BitShareMessage(
+            let message = bitshareMessage(
                 id: msgID,
                 sender: senderNick,
                 content: content,
@@ -838,7 +838,7 @@ class BluetoothMeshService: NSObject {
                 }
                 
                 // Create message with encrypted content
-                let message = BitShareMessage(
+                let message = bitshareMessage(
                     id: messageID,
                     sender: senderNick,
                     content: "",  // Empty placeholder since actual content is encrypted
@@ -1280,7 +1280,7 @@ class BluetoothMeshService: NSObject {
             if let senderID = String(data: packet.senderID.trimmingNullBytes(), encoding: .utf8),
                senderID == self.myPeerID,
                packet.type == MessageType.message.rawValue,
-               let message = BitShareMessage.fromBinaryPayload(packet.payload) {
+               let message = bitshareMessage.fromBinaryPayload(packet.payload) {
                 MessageRetryService.shared.addMessageForRetry(
                     content: message.content,
                     mentions: message.mentions,
@@ -1344,7 +1344,7 @@ class BluetoothMeshService: NSObject {
                senderID == self.myPeerID {
                 // This is our own message that failed to send
                 if packet.type == MessageType.message.rawValue,
-                   let message = BitShareMessage.fromBinaryPayload(packet.payload) {
+                   let message = bitshareMessage.fromBinaryPayload(packet.payload) {
                     // For encrypted channel messages, we need to preserve the channel key
                     var channelKeyData: Data? = nil
                     if let channel = message.channel, message.isEncrypted {
@@ -1473,7 +1473,7 @@ class BluetoothMeshService: NSObject {
                     }
                     
                     // Parse broadcast message (not encrypted)
-                    if let message = BitShareMessage.fromBinaryPayload(packet.payload) {
+                    if let message = bitshareMessage.fromBinaryPayload(packet.payload) {
                             
                         // Store nickname mapping
                         peerNicknamesLock.lock()
@@ -1492,7 +1492,7 @@ class BluetoothMeshService: NSObject {
                             }
                         }
                         
-                        let messageWithPeerID = BitShareMessage(
+                        let messageWithPeerID = bitshareMessage(
                             id: message.id,  // Preserve the original message ID
                             sender: message.sender,
                             content: finalContent,
@@ -1588,7 +1588,7 @@ class BluetoothMeshService: NSObject {
                     }
                     
                     // Parse the decrypted message
-                    if let message = BitShareMessage.fromBinaryPayload(decryptedPayload) {
+                    if let message = bitshareMessage.fromBinaryPayload(decryptedPayload) {
                         // Check if this is a dummy message for cover traffic
                         if message.content.hasPrefix(self.coverTrafficPrefix) {
                                 return  // Silently discard dummy messages
@@ -1614,7 +1614,7 @@ class BluetoothMeshService: NSObject {
                         }
                         peerNicknamesLock.unlock()
                         
-                        let messageWithPeerID = BitShareMessage(
+                        let messageWithPeerID = bitshareMessage(
                             id: message.id,  // Preserve the original message ID
                             sender: message.sender,
                             content: message.content,

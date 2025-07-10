@@ -1,6 +1,6 @@
 //
-// BitShareMessageTests.swift
-// BitShareTests
+// bitshareMessageTests.swift
+// bitshareTests
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -9,10 +9,10 @@
 import XCTest
 @testable import bitchat
 
-class BitShareMessageTests: XCTestCase {
+class bitshareMessageTests: XCTestCase {
     
     func testMessageEncodingDecoding() {
-        let message = BitShareMessage(
+        let message = bitshareMessage(
             sender: "testuser",
             content: "Hello, World!",
             timestamp: Date(),
@@ -29,7 +29,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode message")
             return
         }
@@ -43,7 +43,7 @@ class BitShareMessageTests: XCTestCase {
     }
     
     func testRoomMessage() {
-        let channelMessage = BitShareMessage(
+        let channelMessage = bitshareMessage(
             sender: "alice",
             content: "Hello #general",
             timestamp: Date(),
@@ -61,7 +61,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode channel message")
             return
         }
@@ -73,7 +73,7 @@ class BitShareMessageTests: XCTestCase {
     func testEncryptedRoomMessage() {
         let encryptedData = Data([1, 2, 3, 4, 5, 6, 7, 8]) // Mock encrypted content
         
-        let encryptedMessage = BitShareMessage(
+        let encryptedMessage = bitshareMessage(
             sender: "bob",
             content: "", // Empty for encrypted messages
             timestamp: Date(),
@@ -93,7 +93,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode encrypted message")
             return
         }
@@ -105,7 +105,7 @@ class BitShareMessageTests: XCTestCase {
     }
     
     func testPrivateMessage() {
-        let privateMessage = BitShareMessage(
+        let privateMessage = bitshareMessage(
             sender: "alice",
             content: "This is private",
             timestamp: Date(),
@@ -121,7 +121,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode private message")
             return
         }
@@ -131,7 +131,7 @@ class BitShareMessageTests: XCTestCase {
     }
     
     func testRelayMessage() {
-        let relayMessage = BitShareMessage(
+        let relayMessage = bitshareMessage(
             sender: "charlie",
             content: "Relayed message",
             timestamp: Date(),
@@ -145,7 +145,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode relay message")
             return
         }
@@ -155,7 +155,7 @@ class BitShareMessageTests: XCTestCase {
     }
     
     func testEmptyContent() {
-        let emptyMessage = BitShareMessage(
+        let emptyMessage = bitshareMessage(
             sender: "user",
             content: "",
             timestamp: Date(),
@@ -168,7 +168,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode empty message")
             return
         }
@@ -178,7 +178,7 @@ class BitShareMessageTests: XCTestCase {
     
     func testLongContent() {
         let longContent = String(repeating: "A", count: 1000)
-        let longMessage = BitShareMessage(
+        let longMessage = bitshareMessage(
             sender: "user",
             content: longContent,
             timestamp: Date(),
@@ -191,7 +191,7 @@ class BitShareMessageTests: XCTestCase {
             return
         }
         
-        guard let decoded = BitShareMessage.fromBinaryPayload(encoded) else {
+        guard let decoded = bitshareMessage.fromBinaryPayload(encoded) else {
             XCTFail("Failed to decode long message")
             return
         }

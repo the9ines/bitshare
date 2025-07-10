@@ -1,6 +1,6 @@
 //
-// BitShareProtocol.swift
-// BitShare
+// bitshareProtocol.swift
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -209,7 +209,7 @@ enum DeliveryStatus: Codable, Equatable {
     }
 }
 
-struct BitShareMessage: Codable, Equatable {
+struct bitshareMessage: Codable, Equatable {
     let id: String
     let sender: String
     let content: String
@@ -244,7 +244,7 @@ struct BitShareMessage: Codable, Equatable {
 }
 
 protocol BitchatDelegate: AnyObject {
-    func didReceiveMessage(_ message: BitShareMessage)
+    func didReceiveMessage(_ message: bitshareMessage)
     func didConnectToPeer(_ peerID: String)
     func didDisconnectFromPeer(_ peerID: String)
     func didUpdatePeerList(_ peers: [String])

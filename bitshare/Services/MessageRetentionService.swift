@@ -1,6 +1,6 @@
 //
 // MessageRetentionService.swift
-// BitShare
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -75,7 +75,7 @@ class MessageRetentionService {
     
     // MARK: - Message Storage
     
-    func saveMessage(_ message: BitShareMessage, forChannel channel: String?) {
+    func saveMessage(_ message: bitshareMessage, forChannel channel: String?) {
         // Only save messages for favorite channels
         guard let channel = channel ?? message.channel,
               getFavoriteChannels().contains(channel) else {
@@ -107,10 +107,10 @@ class MessageRetentionService {
         try? encryptedData.write(to: fileURL)
     }
     
-    func loadMessagesForChannel(_ channel: String) -> [BitShareMessage] {
+    func loadMessagesForChannel(_ channel: String) -> [bitshareMessage] {
         guard getFavoriteChannels().contains(channel) else { return [] }
         
-        var messages: [BitShareMessage] = []
+        var messages: [bitshareMessage] = []
         
         do {
             let files = try FileManager.default.contentsOfDirectory(at: messagesDirectory, includingPropertiesForKeys: nil)
@@ -121,7 +121,7 @@ class MessageRetentionService {
                    let decryptedData = decrypt(encryptedData),
                    let storedMessage = try? JSONDecoder().decode(StoredMessage.self, from: decryptedData) {
                     
-                    let message = BitShareMessage(
+                    let message = bitshareMessage(
                         sender: storedMessage.sender,
                         content: storedMessage.content,
                         timestamp: storedMessage.timestamp,

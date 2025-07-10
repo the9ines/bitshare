@@ -1,6 +1,6 @@
 //
 // ContentView.swift
-// BitShare
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -309,7 +309,7 @@ struct ContentView: View {
             } else {
                 // Public chat header
                 HStack(spacing: 4) {
-                    Text("BitShare*")
+                    Text("bitshare*")
                         .font(.system(size: 18, weight: .medium, design: .monospaced))
                         .foregroundColor(textColor)
                         .onTapGesture(count: 3) {
@@ -398,7 +398,7 @@ struct ContentView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
-                    let messages: [BitShareMessage] = {
+                    let messages: [bitshareMessage] = {
                         if let privatePeer = viewModel.selectedPrivateChatPeer {
                             let msgs = viewModel.getPrivateChatMessages(for: privatePeer)
                             // Log what we're showing
@@ -1049,7 +1049,7 @@ struct ContentView: View {
 
 // Helper view for rendering message content with clickable hashtags
 struct MessageContentView: View {
-    let message: BitShareMessage
+    let message: bitshareMessage
     let viewModel: ChatViewModel
     let colorScheme: ColorScheme
     let isMentioned: Bool

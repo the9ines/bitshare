@@ -1,6 +1,6 @@
 //
 // BinaryProtocol.swift
-// BitShare
+// bitshare
 //
 // This is free and unencumbered software released into the public domain.
 // For more information, see <https://unlicense.org>
@@ -221,8 +221,8 @@ struct BinaryProtocol {
     }
 }
 
-// Binary encoding for BitShareMessage
-extension BitShareMessage {
+// Binary encoding for bitshareMessage
+extension bitshareMessage {
     func toBinaryPayload() -> Data? {
         var data = Data()
         
@@ -332,7 +332,7 @@ extension BitShareMessage {
         return data
     }
     
-    static func fromBinaryPayload(_ data: Data) -> BitShareMessage? {
+    static func fromBinaryPayload(_ data: Data) -> bitshareMessage? {
         // Create an immutable copy to prevent threading issues
         let dataCopy = Data(data)
         
@@ -475,7 +475,7 @@ extension BitShareMessage {
             }
         }
         
-        let message = BitShareMessage(
+        let message = bitshareMessage(
             id: id,
             sender: sender,
             content: content,

@@ -1,4 +1,4 @@
-name: BitShare
+name: bitshare
 options:
   bundleIdPrefix: share.bitshare
   deploymentTarget:
@@ -22,11 +22,11 @@ targets:
     info:
       path: bitchat/Info.plist
       properties:
-        CFBundleDisplayName: BitShare
+        CFBundleDisplayName: bitshare
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        NSBluetoothAlwaysUsageDescription: BitShare uses Bluetooth to create a secure mesh network for chatting with nearby users.
-        NSBluetoothPeripheralUsageDescription: BitShare uses Bluetooth to discover and connect with other BitShare users nearby.
+        NSBluetoothAlwaysUsageDescription: bitshare uses Bluetooth to create a secure mesh network for chatting with nearby users.
+        NSBluetoothPeripheralUsageDescription: bitshare uses Bluetooth to discover and connect with other bitshare users nearby.
         UIBackgroundModes:
           - bluetooth-central
           - bluetooth-peripheral
@@ -44,7 +44,7 @@ targets:
               - bitshare
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: share.bitshare
-      PRODUCT_NAME: BitShare
+      PRODUCT_NAME: bitshare
       INFOPLIST_FILE: bitchat/Info.plist
       ENABLE_PREVIEWS: YES
       SWIFT_VERSION: 5.0
@@ -71,18 +71,18 @@ targets:
     info:
       path: bitchat/Info.plist
       properties:
-        CFBundleDisplayName: BitShare
+        CFBundleDisplayName: bitshare
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        NSBluetoothAlwaysUsageDescription: BitShare uses Bluetooth to create a secure mesh network for chatting with nearby users.
-        NSBluetoothPeripheralUsageDescription: BitShare uses Bluetooth to discover and connect with other BitShare users nearby.
+        NSBluetoothAlwaysUsageDescription: bitshare uses Bluetooth to create a secure mesh network for chatting with nearby users.
+        NSBluetoothPeripheralUsageDescription: bitshare uses Bluetooth to discover and connect with other bitshare users nearby.
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - bitshare
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: share.bitshare
-      PRODUCT_NAME: BitShare
+      PRODUCT_NAME: bitshare
       INFOPLIST_FILE: bitchat/Info.plist
       ENABLE_PREVIEWS: YES
       SWIFT_VERSION: 5.0
@@ -103,7 +103,7 @@ targets:
     info:
       path: bitshareShareExtension/Info.plist
       properties:
-        CFBundleDisplayName: BitShare
+        CFBundleDisplayName: bitshare
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
@@ -165,7 +165,7 @@ targets:
       DEVELOPMENT_TEAM: L3N5LHJD5Y
 
 schemes:
-  BitShare (iOS):
+  bitshare (iOS):
     build:
       targets:
         bitshare_iOS: all
@@ -185,7 +185,7 @@ schemes:
     archive:
       config: Release
       
-  BitShare (macOS):
+  bitshare (macOS):
     build:
       targets:
         bitshare_macOS: all
