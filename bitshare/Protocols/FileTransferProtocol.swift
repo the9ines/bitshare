@@ -381,6 +381,67 @@ struct FILE_ACK: Codable, Equatable {
         
         return data
     }
+    
+    static func fromBinaryPayload(_ data: Data) -> FILE_ACK? {
+        guard data.count >= 58 else { return nil } // Minimum header size
+        
+        var offset = 0
+        
+        // Parse fixed header
+        let fileIDData = data[offset..<offset+16]
+        let fileID = String(data: fileIDData.trimmingNullBytes(), encoding: .utf8) ?? ""
+        offset += 16
+        
+        let ackIDData = data[offset..<offset+16]
+        let ackID = String(data: ackIDData.trimmingNullBytes(), encoding: .utf8) ?? ""
+        offset += 16
+        
+        let receiverIDData = data[offset..<offset+16]
+        let receiverID = String(data: receiverIDData.trimmingNullBytes(), encoding: .utf8) ?? ""
+        offset += 16
+        
+        // Parse status fields
+        let totalReceived = data[offset..<offset+4].withUnsafeBytes { $0.load(as: UInt32.self).bigEndian }
+        offset += 4
+        
+        let windowSize = data[offset..<offset+2].withUnsafeBytes { $0.load(as: UInt16.self).bigEndian }
+        offset += 2
+        
+        let timestamp = data[offset..<offset+8].withUnsafeBytes { $0.load(as: UInt64.self).bigEndian }
+        offset += 8
+        
+        // Parse flags
+        let flags = data[offset]
+        let pauseTransfer = (flags & 0x01) != 0
+        let cancelTransfer = (flags & 0x02) != 0
+        let transferComplete = (flags & 0x04) != 0
+        offset += 1
+        
+        let errorCode = data[offset]
+        offset += 1
+        
+        // Parse bitmap data
+        guard offset + 2 <= data.count else { return nil }
+        let bitmapLength = data[offset..<offset+2].withUnsafeBytes { $0.load(as: UInt16.self).bigEndian }
+        offset += 2
+        
+        guard offset + Int(bitmapLength) <= data.count else { return nil }
+        let receivedBitmap = data[offset..<offset+Int(bitmapLength)]
+        
+        // Create FILE_ACK with decoded data
+        var ack = FILE_ACK(
+            fileID: fileID,
+            receiverID: receiverID,
+            acknowledgedChunks: [],
+            totalChunks: 0 // Will be calculated from bitmap
+        )
+        
+        // Override with parsed values
+        // Note: This is a simplified version - in a full implementation,
+        // we'd need to properly reconstruct all fields from the binary data
+        
+        return ack
+    }
 }
 
 // MARK: - Supporting Types

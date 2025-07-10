@@ -2082,6 +2082,101 @@ class BluetoothMeshService: NSObject {
                 self.broadcastPacket(relayPacket)
             }
             
+        // MARK: - File Transfer Message Types (PRD Section 3.2)
+        
+        case .FILE_MANIFEST:
+            guard let senderID = String(data: packet.senderID.trimmingNullBytes(), encoding: .utf8) else {
+                return
+            }
+            
+            // Ignore our own file manifests
+            if senderID == myPeerID {
+                return
+            }
+            
+            // Decode file manifest
+            guard let manifest = FILE_MANIFEST.fromBinaryPayload(packet.payload) else {
+                print("Failed to decode FILE_MANIFEST from \(senderID)")
+                return
+            }
+            
+            // Get peer nickname for UI
+            let peerNickname = peerNicknames[senderID] ?? "peer-\(senderID.prefix(4))"
+            
+            // Forward to delegate
+            DispatchQueue.main.async {
+                self.delegate?.didReceiveFileManifest(manifest, from: senderID, peerNickname: peerNickname)
+            }
+            
+            // Relay if TTL > 0 (store-and-forward for offline peers)
+            if packet.ttl > 1 {
+                var relayPacket = packet
+                relayPacket.ttl -= 1
+                
+                // Add small delay to prevent collision
+                let delay = Double.random(in: 0.1...0.3)
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    self?.broadcastPacket(relayPacket)
+                }
+            }
+            
+        case .FILE_CHUNK:
+            guard let senderID = String(data: packet.senderID.trimmingNullBytes(), encoding: .utf8) else {
+                return
+            }
+            
+            // Ignore our own file chunks
+            if senderID == myPeerID {
+                return
+            }
+            
+            // Decode file chunk
+            guard let chunk = FILE_CHUNK.fromBinaryPayload(packet.payload) else {
+                print("Failed to decode FILE_CHUNK from \(senderID)")
+                return
+            }
+            
+            // Forward to delegate
+            DispatchQueue.main.async {
+                self.delegate?.didReceiveFileChunk(chunk, from: senderID)
+            }
+            
+            // Relay if TTL > 0 (store-and-forward for offline peers)
+            if packet.ttl > 1 {
+                var relayPacket = packet
+                relayPacket.ttl -= 1
+                
+                // Add small delay to prevent collision
+                let delay = Double.random(in: 0.1...0.3)
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    self?.broadcastPacket(relayPacket)
+                }
+            }
+            
+        case .FILE_ACK:
+            guard let senderID = String(data: packet.senderID.trimmingNullBytes(), encoding: .utf8) else {
+                return
+            }
+            
+            // Ignore our own file ACKs
+            if senderID == myPeerID {
+                return
+            }
+            
+            // Decode file ACK
+            guard let ack = FILE_ACK.fromBinaryPayload(packet.payload) else {
+                print("Failed to decode FILE_ACK from \(senderID)")
+                return
+            }
+            
+            // Forward to delegate
+            DispatchQueue.main.async {
+                self.delegate?.didReceiveFileAck(ack, from: senderID)
+            }
+            
+            // ACKs are typically not relayed to reduce network traffic
+            // They are point-to-point confirmations
+            
         default:
             break
         }

@@ -45,6 +45,12 @@ class FileTransferManager: ObservableObject {
     private var lastProgressUpdate: Date = Date()
     private var bytesTransferredSinceLastUpdate: UInt64 = 0
     
+    // Enhanced retry management (Phase 2 Week 7)
+    private var chunkRetryAttempts: [String: [UInt32: Int]] = [:]  // transferID -> chunkIndex -> attempts
+    private var retryTimers: [String: Timer] = [:]  // transferID -> retry timer
+    private let maxRetryAttempts = 5
+    private let baseRetryDelay: TimeInterval = 1.0  // Start with 1 second
+    
     // Cancellables for Combine subscriptions
     private var cancellables = Set<AnyCancellable>()
     private var progressTimer: Timer?
@@ -273,9 +279,24 @@ class FileTransferManager: ObservableObject {
         // Remove from queue
         queuedTransfers.removeAll { $0.transferID == transferID }
         
+        // Clean up retry state (Phase 2 Week 7)
+        cleanupRetryState(transferID)
+        
         // Process next queued transfer
         processTransferQueue()
         updateGlobalProgress()
+    }
+    
+    /// Clean up retry state for a transfer (Phase 2 Week 7)
+    private func cleanupRetryState(_ transferID: String) {
+        // Remove retry attempts tracking
+        chunkRetryAttempts.removeValue(forKey: transferID)
+        
+        // Cancel and remove any pending retry timers
+        retryTimers.keys.filter { $0.hasPrefix(transferID) }.forEach { key in
+            retryTimers[key]?.invalidate()
+            retryTimers.removeValue(forKey: key)
+        }
     }
     
     /// Retry failed transfer
@@ -654,6 +675,60 @@ class FileTransferManager: ObservableObject {
                 self?.resumeAllPausedTransfers()
             }
             .store(in: &cancellables)
+            
+        // Monitor peer connectivity for intelligent retry (Phase 2 Week 7)
+        NotificationCenter.default.publisher(for: .peerConnected)
+            .sink { [weak self] notification in
+                if let peerID = notification.object as? String {
+                    self?.handlePeerReconnected(peerID)
+                }
+            }
+            .store(in: &cancellables)
+            
+        NotificationCenter.default.publisher(for: .peerDisconnected)
+            .sink { [weak self] notification in
+                if let peerID = notification.object as? String {
+                    self?.handlePeerDisconnected(peerID)
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Handle peer reconnection - resume pending transfers (Phase 2 Week 7)
+    private func handlePeerReconnected(_ peerID: String) {
+        print("📡 Peer \(peerID) reconnected, checking for pending transfers...")
+        
+        // Find transfers that were stalled due to this peer being offline
+        for transferState in activeTransfers {
+            if transferState.peerID == peerID && 
+               (transferState.status == .paused || 
+                (case .failed(_, let canRetry) = transferState.status, canRetry)) {
+                
+                print("🔄 Resuming transfer \(transferState.transferID) with reconnected peer \(peerID)")
+                
+                // Reset failed chunks for retry
+                transferState.failedChunks.removeAll()
+                
+                // Clean up old retry state
+                cleanupRetryState(transferState.transferID)
+                
+                // Resume the transfer
+                resumeTransfer(transferState.transferID)
+            }
+        }
+    }
+    
+    /// Handle peer disconnection - pause affected transfers (Phase 2 Week 7)
+    private func handlePeerDisconnected(_ peerID: String) {
+        print("📡 Peer \(peerID) disconnected, pausing affected transfers...")
+        
+        // Pause transfers involving the disconnected peer
+        for transferState in activeTransfers {
+            if transferState.peerID == peerID && transferState.isActive {
+                print("⏸️ Pausing transfer \(transferState.transferID) due to peer disconnect")
+                pauseTransfer(transferState.transferID)
+            }
+        }
     }
     
     private func setupMeshServiceIntegration() {
@@ -691,16 +766,86 @@ class FileTransferManager: ObservableObject {
         }
     }
     
+    /// Enhanced chunk retry with exponential backoff (Phase 2 Week 7)
     private func requestChunkRetry(_ fileID: String, chunkIndex: UInt32, to peerID: String) {
-        // Send targeted retry request
-        let ack = FILE_ACK(
-            fileID: fileID,
-            receiverID: meshService?.myPeerID ?? "unknown",
-            acknowledgedChunks: [],
-            totalChunks: 0
-        )
-        // Note: Would set specific retry parameters
-        sendFileAck(ack, to: peerID)
+        // Track retry attempts
+        if chunkRetryAttempts[fileID] == nil {
+            chunkRetryAttempts[fileID] = [:]
+        }
+        
+        let currentAttempts = chunkRetryAttempts[fileID]?[chunkIndex] ?? 0
+        
+        // Check if we've exceeded max retry attempts
+        guard currentAttempts < maxRetryAttempts else {
+            print("⚠️ Max retry attempts exceeded for chunk \(chunkIndex) in transfer \(fileID)")
+            handleChunkRetryFailure(fileID, chunkIndex: chunkIndex)
+            return
+        }
+        
+        // Increment retry count
+        chunkRetryAttempts[fileID]?[chunkIndex] = currentAttempts + 1
+        
+        // Calculate exponential backoff delay
+        let delay = baseRetryDelay * pow(2.0, Double(currentAttempts))
+        let jitter = Double.random(in: 0.8...1.2) // Add jitter to prevent thundering herd
+        let finalDelay = delay * jitter
+        
+        print("🔄 Retrying chunk \(chunkIndex) for transfer \(fileID) (attempt \(currentAttempts + 1)/\(maxRetryAttempts)) after \(String(format: "%.1f", finalDelay))s")
+        
+        // Schedule retry with exponential backoff
+        let timer = Timer.scheduledTimer(withTimeInterval: finalDelay, repeats: false) { [weak self] _ in
+            self?.performChunkRetry(fileID, chunkIndex: chunkIndex, to: peerID)
+            self?.retryTimers.removeValue(forKey: "\(fileID)_\(chunkIndex)")
+        }
+        
+        // Store timer for potential cancellation
+        retryTimers["\(fileID)_\(chunkIndex)"] = timer
+    }
+    
+    /// Perform the actual chunk retry
+    private func performChunkRetry(_ fileID: String, chunkIndex: UInt32, to peerID: String) {
+        guard let transferState = activeTransfers.first(where: { $0.transferID == fileID }),
+              let fileData = transferState.fileData else {
+            return
+        }
+        
+        // Mark chunk as failed for re-transmission
+        transferState.failedChunks.insert(chunkIndex)
+        transferState.completedChunks.remove(chunkIndex)
+        
+        // Re-create and send the chunk
+        let chunks = createFileChunks(fileData, fileID: fileID)
+        guard Int(chunkIndex) < chunks.count else { return }
+        
+        let chunk = chunks[Int(chunkIndex)]
+        sendFileChunk(chunk, to: peerID)
+        
+        // Update transfer status
+        let progress = Double(transferState.completedChunks.count) / Double(transferState.manifest.totalChunks) * 100.0
+        transferState.progress = progress
+        updateGlobalProgress()
+    }
+    
+    /// Handle chunk retry failure after max attempts
+    private func handleChunkRetryFailure(_ fileID: String, chunkIndex: UInt32) {
+        guard let transferState = activeTransfers.first(where: { $0.transferID == fileID }) else {
+            return
+        }
+        
+        // Mark transfer as failed due to persistent chunk failure
+        transferState.status = .failed(reason: "Chunk \(chunkIndex) failed after \(maxRetryAttempts) attempts", canRetry: true)
+        updateTransferInHistory(fileID, status: transferState.status)
+        
+        // Clean up retry state
+        chunkRetryAttempts.removeValue(forKey: fileID)
+        
+        // Cancel any pending retry timers for this transfer
+        retryTimers.keys.filter { $0.hasPrefix(fileID) }.forEach { key in
+            retryTimers[key]?.invalidate()
+            retryTimers.removeValue(forKey: key)
+        }
+        
+        print("❌ Transfer \(fileID) failed due to persistent chunk failure")
     }
     
     private func retransmitChunks(_ chunkIndices: [UInt32], for fileID: String, to peerID: String) {
@@ -805,4 +950,13 @@ class FileTransferState: ObservableObject, Identifiable {
     var displayStatus: String {
         return status.displayText
     }
+}
+
+// MARK: - Phase 2 Week 7: Enhanced Notification Support
+
+extension Notification.Name {
+    static let peerConnected = Notification.Name("peerConnected")
+    static let peerDisconnected = Notification.Name("peerDisconnected")
+    static let transferTimeout = Notification.Name("transferTimeout")
+    static let chunkRetryExhausted = Notification.Name("chunkRetryExhausted")
 }

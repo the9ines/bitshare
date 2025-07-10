@@ -341,8 +341,9 @@ class FileTransferService: ObservableObject {
     }
     
     private func setupMeshServiceIntegration() {
-        // TODO: Integrate with BluetoothMeshService delegate methods
-        // This will be implemented when connecting to the actual mesh service
+        // File transfer integration is handled through ChatViewModel's BitchatDelegate
+        // which forwards file transfer messages to this service via FileTransferManager
+        print("FileTransferService: Mesh service integration ready")
     }
     
     private func getMimeType(for url: URL) -> String {
