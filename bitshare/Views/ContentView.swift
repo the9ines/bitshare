@@ -46,11 +46,18 @@ struct ContentView: View {
             GeometryReader { geometry in
                 ZStack {
                     VStack(spacing: 0) {
+                        // PRD Section 4.2: Header (44px fixed height)
                         headerView
+                            .frame(height: 44)
                         Divider()
-                        messagesView
+                        
+                        // PRD Section 4.2: File Drop Zone / Transfer Area (main content)
+                        fileDropZoneView
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         Divider()
-                        inputView
+                        
+                        // PRD Section 4.2: Peer Discovery / Controls (bottom section)
+                        peerControlsView
                     }
                     .background(backgroundColor)
                     .foregroundColor(textColor)
@@ -119,6 +126,9 @@ struct ContentView: View {
         #endif
         .sheet(isPresented: $showAppInfo) {
             AppInfoView()
+        }
+        .sheet(isPresented: $viewModel.showTransferHistory) {
+            FileTransferHistoryView(viewModel: viewModel)
         }
         .alert("Set Channel Password", isPresented: $showPasswordInput) {
             SecureField("Password", text: $passwordInput)
@@ -307,9 +317,9 @@ struct ContentView: View {
                     }
                 }
             } else {
-                // Public chat header
-                HStack(spacing: 4) {
-                    Text("bitshare*")
+                // PRD Section 4.2: Main header with bitshare* [peers: count] format
+                HStack(spacing: 8) {
+                    Text("bitshare* [peers: \(viewModel.connectedPeers.count)]")
                         .font(.system(size: 18, weight: .medium, design: .monospaced))
                         .foregroundColor(textColor)
                         .onTapGesture(count: 3) {
@@ -320,6 +330,8 @@ struct ContentView: View {
                             // Single tap for app info
                             showAppInfo = true
                         }
+                    
+                    Spacer()
                     
                     HStack(spacing: 0) {
                         Text("@")
@@ -1044,6 +1056,181 @@ struct ContentView: View {
         }
         .background(backgroundColor)
         }
+    }
+    
+    // MARK: - PRD Section 4.2: File Drop Zone / Transfer Area
+    private var fileDropZoneView: some View {
+        VStack {
+            if viewModel.activeTransfers.isEmpty {
+                // PRD Section 5.1: Primary drag-and-drop interface for macOS
+                VStack(spacing: 20) {
+                    Image(systemName: "doc.badge.plus")
+                        .font(.system(size: 48))
+                        .foregroundColor(secondaryTextColor)
+                    
+                    Text("Drop files here to share")
+                        .font(.system(size: 18, design: .monospaced))
+                        .foregroundColor(secondaryTextColor)
+                    
+                    Text("or click to browse")
+                        .font(.system(size: 14, design: .monospaced))
+                        .foregroundColor(secondaryTextColor.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(backgroundColor.opacity(0.3))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(secondaryTextColor.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [10]))
+                )
+                .onTapGesture {
+                    showFilePicker = true
+                }
+                .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                    handleFileProviders(providers)
+                    return true
+                }
+            } else {
+                // Transfer progress area
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(Array(viewModel.activeTransfers.values), id: \.transferID) { transfer in
+                            FileTransferRowView(transfer: transfer)
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.data],
+            allowsMultipleSelection: true
+        ) { result in
+            switch result {
+            case .success(let urls):
+                for url in urls {
+                    startFileTransfer(url)
+                }
+            case .failure(let error):
+                print("File picker error: \(error)")
+            }
+        }
+    }
+    
+    // MARK: - PRD Section 4.2: Peer Discovery / Controls
+    private var peerControlsView: some View {
+        HStack {
+            // Transfer history button (PRD Section 5.1: MVP requirement)
+            Button("History") {
+                viewModel.showTransferHistory = true
+            }
+            .font(.system(size: 14, design: .monospaced))
+            .foregroundColor(textColor)
+            
+            Spacer()
+            
+            // Peer count and status
+            HStack(spacing: 4) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(viewModel.connectedPeers.isEmpty ? secondaryTextColor : textColor)
+                
+                Text("\(viewModel.connectedPeers.count)")
+                    .font(.system(size: 14, design: .monospaced))
+                    .foregroundColor(viewModel.connectedPeers.isEmpty ? secondaryTextColor : textColor)
+            }
+            
+            Spacer()
+            
+            // Settings button
+            Button("Settings") {
+                showAppInfo = true
+            }
+            .font(.system(size: 14, design: .monospaced))
+            .foregroundColor(textColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(backgroundColor.opacity(0.95))
+    }
+    
+    // Helper methods for file handling
+    private func handleFileProviders(_ providers: [NSItemProvider]) {
+        for provider in providers {
+            if provider.canLoadObject(ofClass: URL.self) {
+                provider.loadObject(ofClass: URL.self) { url, error in
+                    if let url = url {
+                        DispatchQueue.main.async {
+                            startFileTransfer(url)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func startFileTransfer(_ url: URL) {
+        // Show peer selection for file transfer
+        guard !viewModel.connectedPeers.isEmpty else {
+            print("No peers connected for file transfer")
+            return
+        }
+        
+        // For now, send to all connected peers - later will implement peer selection UI
+        for peerID in viewModel.connectedPeers {
+            if let peerNickname = viewModel.meshService.getPeerNicknames()[peerID] {
+                if let transferID = viewModel.startFileTransfer(url, to: peerID, peerNickname: peerNickname) {
+                    print("Started file transfer: \(transferID) to \(peerNickname)")
+                }
+            }
+        }
+    }
+    
+    // Temporary state for the new UI
+    @State private var showFilePicker = false
+}
+
+struct FileTransferRowView: View {
+    @ObservedObject var transfer: FileTransferState
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(transfer.manifest.fileName)
+                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .foregroundColor(.primary)
+                
+                Text(transfer.displayStatus)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 4) {
+                    Text(transfer.direction == .send ? "→" : "←")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(transfer.direction == .send ? .green : .blue)
+                    
+                    Text(transfer.peerNickname)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("\(Int(transfer.progress))%")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.secondary)
+                
+                ProgressView(value: transfer.progress / 100.0)
+                    .frame(width: 60)
+                    .accentColor(.green) // bitchat accent color
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+        .cornerRadius(8)
     }
 }
 

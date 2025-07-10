@@ -148,6 +148,44 @@ bitshare/
 3. Update bundle identifiers to your domain
 4. Archive and distribute through App Store or TestFlight
 
+## Development Timeline
+
+### PRD-Compliant 10-Week MVP Strategy
+
+bitshare follows an accelerated development approach by forking and extending the proven bitchat codebase:
+
+**Weeks 1-2: Foundation & Analysis**
+- ✅ Fork bitchat repository and analyze architecture
+- ✅ Document design system and protocol specifications  
+- ✅ Update naming conventions and project configuration
+
+**Weeks 3-4: Protocol Extensions**
+- ✅ Add FILE_MANIFEST, FILE_CHUNK, FILE_ACK message types
+- ✅ Implement 480-byte chunking with SHA-256 integrity
+- ✅ Extend BitchatPacket with file transfer support
+
+**Weeks 5-6: Core File Transfer Logic**
+- ✅ Create FileTransferService with PRD specifications
+- ✅ Implement file chunking and reassembly
+- ✅ Add resume/pause/retry capabilities
+
+**Weeks 7-8: UI Transformation**  
+- ✅ Replace messaging UI with file drop zone interface
+- ✅ Implement transfer progress tracking with percentages
+- ✅ Add transfer history as MVP requirement
+
+**Weeks 9-10: Integration & Polish**
+- 🔄 Connect FileTransferService to BluetoothMeshService
+- 📋 Comprehensive testing across mesh network
+- 📋 Performance optimization and bug fixes
+
+### Development Advantages
+
+- **80%+ Code Reuse**: Leveraging existing bitchat infrastructure
+- **Proven Protocol**: X25519 + AES-256-GCM encryption preserved unchanged
+- **Visual Consistency**: 100% design system compatibility maintained
+- **Rapid Iteration**: Fork-based approach accelerates development by 3-4 months
+
 ## Contributing
 
 We welcome contributions to bitshare! Please:

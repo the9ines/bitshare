@@ -77,6 +77,11 @@ enum MessageType: UInt8 {
     case deliveryAck = 0x0A  // Acknowledge message received
     case deliveryStatusRequest = 0x0B  // Request delivery status update
     case readReceipt = 0x0C  // Message has been read/viewed
+    
+    // PRD-Specified File Transfer Types (Section 3.2)
+    case FILE_MANIFEST = 0x0D    // File metadata with SHA-256 hash
+    case FILE_CHUNK = 0x0E       // 480-byte file segments with chunk index
+    case FILE_ACK = 0x0F         // Chunk acknowledgment for reliability
 }
 
 // Special recipient ID for broadcast messages
@@ -253,6 +258,11 @@ protocol BitchatDelegate: AnyObject {
     func didReceiveChannelRetentionAnnouncement(_ channel: String, enabled: Bool, creatorID: String?)
     func decryptChannelMessage(_ encryptedContent: Data, channel: String) -> String?
     
+    // File Transfer Protocol Methods
+    func didReceiveFileManifest(_ manifest: FILE_MANIFEST, from peerID: String, peerNickname: String)
+    func didReceiveFileChunk(_ chunk: FILE_CHUNK, from peerID: String)
+    func didReceiveFileAck(_ ack: FILE_ACK, from peerID: String)
+    
     // Optional method to check if a fingerprint belongs to a favorite peer
     func isFavorite(fingerprint: String) -> Bool
     
@@ -295,5 +305,131 @@ extension BitchatDelegate {
     
     func didUpdateMessageDeliveryStatus(_ messageID: String, status: DeliveryStatus) {
         // Default empty implementation
+    }
+}
+
+// MARK: - PRD-Compliant File Transfer Types (Section 3.2)
+
+// PRD: 480-byte chunk size specification for MTU optimization
+struct FileTransferConstants {
+    static let CHUNK_SIZE: Int = 480        // PRD Section 3.2: 480-byte chunks
+    static let MAX_HOPS: UInt8 = 7         // PRD Section 3.1: TTL maximum
+}
+
+// PRD: FILE_MANIFEST structure with required metadata
+struct FileManifest: Codable, Equatable {
+    let fileID: String                     // Unique identifier for transfer
+    let fileName: String                   // Original filename
+    let fileSize: UInt64                   // Total bytes
+    let sha256Hash: String                 // PRD requirement: SHA-256 integrity
+    let totalChunks: UInt32               // Based on 480-byte chunks
+    let chunkSize: UInt16 = 480           // PRD specification
+    let senderID: String                   // File source
+    let timestamp: Date                    // Creation time
+    let mimeType: String?                  // Content type (optional)
+    
+    init(fileID: String, fileName: String, fileSize: UInt64, sha256Hash: String, senderID: String, mimeType: String? = nil) {
+        self.fileID = fileID
+        self.fileName = fileName
+        self.fileSize = fileSize
+        self.sha256Hash = sha256Hash
+        self.totalChunks = UInt32((fileSize + UInt64(FileTransferConstants.CHUNK_SIZE) - 1) / UInt64(FileTransferConstants.CHUNK_SIZE))
+        self.senderID = senderID
+        self.timestamp = Date()
+        self.mimeType = mimeType
+    }
+    
+    func encode() -> Data? {
+        try? JSONEncoder().encode(self)
+    }
+    
+    static func decode(from data: Data) -> FileManifest? {
+        try? JSONDecoder().decode(FileManifest.self, from: data)
+    }
+}
+
+// PRD: FILE_CHUNK structure with exact payload requirements
+struct FileChunk: Codable, Equatable {
+    let fileID: String                     // References FileManifest
+    let chunkIndex: UInt32                 // 0-based chunk number (PRD requirement)
+    let payload: Data                      // Exactly 480 bytes (except last chunk)
+    let chunkHash: String                  // SHA-256 of this chunk for integrity
+    
+    init(fileID: String, chunkIndex: UInt32, payload: Data) {
+        self.fileID = fileID
+        self.chunkIndex = chunkIndex
+        self.payload = payload
+        
+        // Calculate SHA-256 hash for chunk integrity
+        let hash = SHA256.hash(data: payload)
+        self.chunkHash = hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    
+    func encode() -> Data? {
+        try? JSONEncoder().encode(self)
+    }
+    
+    static func decode(from data: Data) -> FileChunk? {
+        try? JSONDecoder().decode(FileChunk.self, from: data)
+    }
+}
+
+// PRD: FILE_ACK structure for reliability and retransmission
+struct FileChunkAck: Codable, Equatable {
+    let fileID: String                     // File being transferred
+    let chunkIndex: UInt32                 // Chunk successfully received
+    let receiverID: String                 // Who received it
+    let timestamp: Date                    // When received
+    let ackID: String                      // Unique acknowledgment ID
+    
+    init(fileID: String, chunkIndex: UInt32, receiverID: String) {
+        self.fileID = fileID
+        self.chunkIndex = chunkIndex
+        self.receiverID = receiverID
+        self.timestamp = Date()
+        self.ackID = UUID().uuidString
+    }
+    
+    func encode() -> Data? {
+        try? JSONEncoder().encode(self)
+    }
+    
+    static func decode(from data: Data) -> FileChunkAck? {
+        try? JSONDecoder().decode(FileChunkAck.self, from: data)
+    }
+}
+
+// PRD: Transfer status with progress tracking requirements
+enum FileTransferStatus: Codable, Equatable {
+    case preparing                         // Calculating hash, chunking
+    case transferring(chunksReceived: UInt32, totalChunks: UInt32)  // PRD: specific progress
+    case paused(at: UInt32)               // PRD Section 3.2: Resume capabilities
+    case completed(fileURL: URL)          // Successful completion
+    case failed(reason: String)           // Transfer failure
+    case cancelled                        // User cancelled
+    
+    // PRD requirement: percentage complete calculation
+    var percentageComplete: Double {
+        switch self {
+        case .preparing: return 0.0
+        case .transferring(let received, let total):
+            guard total > 0 else { return 0.0 }
+            return Double(received) / Double(total) * 100.0
+        case .paused(let at): return Double(at) / 100.0 * 100.0  // Estimate
+        case .completed: return 100.0
+        case .failed, .cancelled: return 0.0
+        }
+    }
+    
+    var displayText: String {
+        switch self {
+        case .preparing: return "Preparing transfer..."
+        case .transferring(let received, let total):
+            return "Transferring: \(received)/\(total) chunks"
+        case .paused(let at): return "Paused at chunk \(at)"
+        case .completed: return "Transfer complete"
+        case .failed(let reason): return "Failed: \(reason)"
+        case .cancelled: return "Cancelled"
+        }
     }
 }

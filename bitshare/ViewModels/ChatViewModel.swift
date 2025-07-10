@@ -51,6 +51,14 @@ class ChatViewModel: ObservableObject {
     @Published var savedChannels: Set<String> = []  // Channels saved for message retention
     @Published var retentionEnabledChannels: Set<String> = []  // Channels where owner enabled retention for all members
     
+    // MARK: - PRD Section 5.1: File Transfer History (MVP Requirement)
+    @Published var transferHistory: [TransferRecord] = []  // Complete transfer history
+    @Published var activeTransfers: [String: FileTransferState] = [:]  // Currently active transfers
+    @Published var showTransferHistory: Bool = false  // Show/hide transfer history view
+    
+    // File Transfer Manager Integration
+    private let fileTransferManager = FileTransferManager.shared
+    
     let meshService = BluetoothMeshService()
     private let userDefaults = UserDefaults.standard
     private let nicknameKey = "bitchat.nickname"
@@ -93,6 +101,9 @@ class ChatViewModel: ObservableObject {
         
         // Request notification permission
         NotificationService.shared.requestAuthorization()
+        
+        // Initialize file transfer manager
+        setupFileTransferManager()
         
         // Subscribe to delivery status updates
         deliveryTrackerCancellable = DeliveryTracker.shared.deliveryStatusUpdated
@@ -1702,6 +1713,59 @@ class ChatViewModel: ObservableObject {
         
         return result
     }
+    
+    // MARK: - File Transfer Integration
+    
+    private func setupFileTransferManager() {
+        // Set mesh service for file transfer manager
+        fileTransferManager.setMeshService(meshService)
+        
+        // Subscribe to active transfers updates
+        fileTransferManager.$activeTransfers
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] transfers in
+                self?.activeTransfers = transfers.reduce(into: [:]) { result, transfer in
+                    result[transfer.transferID] = transfer
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to transfer history updates
+        fileTransferManager.$transferHistory
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] history in
+                self?.transferHistory = history
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Start file transfer to a specific peer
+    func startFileTransfer(_ fileURL: URL, to peerID: String, peerNickname: String) -> String? {
+        return fileTransferManager.queueFileTransfer(fileURL, to: peerID, peerNickname: peerNickname)
+    }
+    
+    /// Pause file transfer
+    func pauseFileTransfer(_ transferID: String) {
+        fileTransferManager.pauseTransfer(transferID)
+    }
+    
+    /// Resume file transfer
+    func resumeFileTransfer(_ transferID: String) {
+        fileTransferManager.resumeTransfer(transferID)
+    }
+    
+    /// Cancel file transfer
+    func cancelFileTransfer(_ transferID: String) {
+        fileTransferManager.cancelTransfer(transferID)
+    }
+    
+    /// Retry failed file transfer
+    func retryFileTransfer(_ transferID: String) {
+        fileTransferManager.retryTransfer(transferID)
+    }
+    
+    // Need to add cancellables for Combine subscriptions
+    private var cancellables = Set<AnyCancellable>()
 }
 
 extension ChatViewModel: BitchatDelegate {
@@ -3133,4 +3197,145 @@ extension ChatViewModel: BitchatDelegate {
         }
     }
     
+    // MARK: - PRD Section 5.1: File Transfer Methods (MVP Requirements)
+    
+    func addTransferRecord(_ record: TransferRecord) {
+        transferHistory.insert(record, at: 0)  // Most recent first
+        
+        // Keep only last 100 transfers for performance
+        if transferHistory.count > 100 {
+            transferHistory = Array(transferHistory.prefix(100))
+        }
+    }
+    
+    func updateTransferStatus(_ transferID: String, status: FileTransferStatus) {
+        if var state = activeTransfers[transferID] {
+            state.status = status
+            state.lastUpdated = Date()
+            activeTransfers[transferID] = state
+            
+            // Update history record if exists
+            if let index = transferHistory.firstIndex(where: { $0.transferID == transferID }) {
+                var record = transferHistory[index]
+                record.status = status
+                record.lastUpdated = Date()
+                transferHistory[index] = record
+            }
+        }
+    }
+    
+    func retryFailedTransfer(_ transferID: String) {
+        if let record = transferHistory.first(where: { $0.transferID == transferID }),
+           case .failed = record.status {
+            
+            // Create new transfer record for retry
+            let retryRecord = TransferRecord(
+                transferID: UUID().uuidString,
+                fileName: record.fileName,
+                fileSize: record.fileSize,
+                senderReceiver: record.senderReceiver,
+                direction: record.direction,
+                status: .preparing,
+                timestamp: Date(),
+                lastUpdated: Date(),
+                isRetry: true,
+                originalTransferID: transferID
+            )
+            
+            addTransferRecord(retryRecord)
+            
+            // TODO: Integrate with FileTransferService to restart transfer
+            print("Retrying transfer: \(record.fileName)")
+        }
+    }
+    
+    func clearTransferHistory() {
+        transferHistory.removeAll()
+        activeTransfers.removeAll()
+    }
+    
+    // MARK: - File Transfer Delegate Methods
+    
+    func didReceiveFileManifest(_ manifest: FILE_MANIFEST, from peerID: String, peerNickname: String) {
+        DispatchQueue.main.async { [weak self] in
+            self?.fileTransferManager.handleIncomingManifest(manifest, from: peerID, peerNickname: peerNickname)
+        }
+    }
+    
+    func didReceiveFileChunk(_ chunk: FILE_CHUNK, from peerID: String) {
+        fileTransferManager.handleIncomingChunk(chunk, from: peerID)
+    }
+    
+    func didReceiveFileAck(_ ack: FILE_ACK, from peerID: String) {
+        fileTransferManager.handleFileAck(ack, from: peerID)
+    }
+}
+
+// MARK: - PRD Transfer History Supporting Types
+
+struct TransferRecord: Identifiable, Codable {
+    let id = UUID()
+    let transferID: String           // Unique transfer identifier
+    let fileName: String             // Original filename
+    let fileSize: UInt64            // File size in bytes
+    let senderReceiver: String      // Peer nickname
+    let direction: TransferDirection // Send/Receive
+    var status: FileTransferStatus  // Current status
+    let timestamp: Date             // When transfer started
+    var lastUpdated: Date           // Last status update
+    let isRetry: Bool               // Is this a retry attempt
+    let originalTransferID: String? // Reference to original failed transfer
+    
+    init(transferID: String, fileName: String, fileSize: UInt64, senderReceiver: String, direction: TransferDirection, status: FileTransferStatus, timestamp: Date, lastUpdated: Date, isRetry: Bool = false, originalTransferID: String? = nil) {
+        self.transferID = transferID
+        self.fileName = fileName
+        self.fileSize = fileSize
+        self.senderReceiver = senderReceiver
+        self.direction = direction
+        self.status = status
+        self.timestamp = timestamp
+        self.lastUpdated = lastUpdated
+        self.isRetry = isRetry
+        self.originalTransferID = originalTransferID
+    }
+    
+    // PRD requirement: display format for transfer history
+    var displayDescription: String {
+        let directionText = direction == .send ? "→" : "←"
+        let sizeText = ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
+        return "\(directionText) \(fileName) (\(sizeText)) \(directionText == "→" ? "to" : "from") \(senderReceiver)"
+    }
+    
+    var canRetry: Bool {
+        if case .failed = status {
+            return true
+        }
+        return false
+    }
+}
+
+enum TransferDirection: String, Codable {
+    case send = "send"
+    case receive = "receive"
+}
+
+struct FileTransferState {
+    let manifest: FileManifest
+    var status: FileTransferStatus
+    var receivedChunks: Set<UInt32>
+    var lastUpdated: Date
+    var transferStarted: Date
+    
+    init(manifest: FileManifest) {
+        self.manifest = manifest
+        self.status = .preparing
+        self.receivedChunks = []
+        self.lastUpdated = Date()
+        self.transferStarted = Date()
+    }
+    
+    var progress: Double {
+        guard manifest.totalChunks > 0 else { return 0.0 }
+        return Double(receivedChunks.count) / Double(manifest.totalChunks) * 100.0
+    }
 }

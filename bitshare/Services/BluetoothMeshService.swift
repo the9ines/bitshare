@@ -28,8 +28,9 @@ extension Data {
 }
 
 class BluetoothMeshService: NSObject {
-    static let serviceUUID = CBUUID(string: "F47B5E2D-4A9E-4C5A-9B3F-8E1D2C3A4B5C")
-    static let characteristicUUID = CBUUID(string: "A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D")
+    // PRD Section 3.1: Exact UUIDs for Bitchat protocol compatibility
+    static let serviceUUID = CBUUID(string: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
+    static let characteristicUUID = CBUUID(string: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
     
     private var centralManager: CBCentralManager?
     private var peripheralManager: CBPeripheralManager?
@@ -50,7 +51,7 @@ class BluetoothMeshService: NSObject {
     private let encryptionService = EncryptionService()
     private let messageQueue = DispatchQueue(label: "bitchat.messageQueue", attributes: .concurrent)
     private var processedMessages = Set<String>()
-    private let maxTTL: UInt8 = 7  // Maximum hops for long-distance delivery
+    private let maxTTL: UInt8 = FileTransferConstants.MAX_HOPS  // PRD Section 3.1: 7-hop maximum
     private var announcedToPeers = Set<String>()  // Track which peers we've announced to
     private var announcedPeers = Set<String>()  // Track peers who have already been announced
     private var processedKeyExchanges = Set<String>()  // Track processed key exchanges to prevent duplicates
@@ -878,6 +879,13 @@ class BluetoothMeshService: NSObject {
             } catch {
             }
         }
+    }
+    
+    // MARK: - Public File Transfer Support
+    
+    /// Broadcast a file transfer packet to all connected peers
+    func broadcastFileTransferPacket(_ packet: BitchatPacket) {
+        broadcastPacket(packet)
     }
     
     private func sendAnnouncementToPeer(_ peerID: String) {
