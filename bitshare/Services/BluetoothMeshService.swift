@@ -280,7 +280,6 @@ class BluetoothMeshService: NSObject {
                 self.processedMessages.removeAll()
                 self.processedKeyExchanges.removeAll()
                 
-                print("[BloomFilter] Reset with network size: \(networkSize), memory: \(self.messageBloomFilter.memorySizeBytes) bytes")
             }
         }
         
@@ -1424,7 +1423,6 @@ class BluetoothMeshService: NSObject {
                 return
             } else {
                 // False positive from Bloom filter
-                print("[BloomFilter] False positive detected for message: \(messageID)")
             }
         }
         
@@ -1434,7 +1432,6 @@ class BluetoothMeshService: NSObject {
         // Log statistics periodically
         if messageBloomFilter.insertCount % 100 == 0 {
             let fpRate = messageBloomFilter.estimatedFalsePositiveRate
-            print("[BloomFilter] Items: \(messageBloomFilter.insertCount), Est. FP rate: \(String(format: "%.3f%%", fpRate * 100))")
         }
         
         // Reset bloom filter periodically to prevent saturation
@@ -2686,6 +2683,12 @@ extension BluetoothMeshService: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         // Peripheral manager state updated
         switch peripheral.state {
+        case .unsupported:
+            break
+        case .unauthorized:
+            break
+        case .poweredOff:
+            break
         case .poweredOn:
             setupPeripheral()
             startAdvertising()
@@ -2700,7 +2703,11 @@ extension BluetoothMeshService: CBPeripheralManagerDelegate {
     }
     
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
-        // Handle service addition if needed
+        // Service added
+    }
+    
+    func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
+        // Advertising state changed
     }
     
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
