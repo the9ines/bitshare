@@ -10,6 +10,8 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var viewModel: ChatViewModel
+    @EnvironmentObject var fileTransferManager: FileTransferManager
+    @EnvironmentObject var transportManager: TransportManager
     @State private var messageText = ""
     @State private var textFieldSelection: NSRange? = nil
     @FocusState private var isTextFieldFocused: Bool
@@ -332,6 +334,12 @@ struct ContentView: View {
                         }
                     
                     Spacer()
+                    
+                    // NEW: Transport status indicator
+                    CompactTransportStatusView(
+                        transportManager: transportManager,
+                        fileTransferManager: fileTransferManager
+                    )
                     
                     HStack(spacing: 0) {
                         Text("@")

@@ -40,6 +40,11 @@ class FileTransferManager: ObservableObject {
     private let transferQueue = DispatchQueue(label: "bitshare.fileTransfer", qos: .userInitiated)
     private let progressUpdateQueue = DispatchQueue(label: "bitshare.progress", qos: .userInitiated)
     
+    // Transport Management - NEW: Intelligent multi-transport support
+    @Published var transportManager: TransportManager = TransportManager.shared
+    @Published var activeTransportType: TransportType = .bluetooth
+    @Published var transportSpeedMultiplier: Double = 1.0  // Speed improvement factor
+    
     // Performance monitoring
     private var transferStartTimes: [String: Date] = [:]
     private var lastProgressUpdate: Date = Date()
@@ -67,6 +72,138 @@ class FileTransferManager: ObservableObject {
     func setMeshService(_ meshService: BluetoothMeshService) {
         self.meshService = meshService
         setupMeshServiceIntegration()
+        setupTransportSystem(meshService)
+    }
+    
+    /// Initialize the multi-transport system for blazing fast file transfers
+    private func setupTransportSystem(_ meshService: BluetoothMeshService) {
+        // Register Bluetooth transport (wraps existing mesh service)
+        let bluetoothTransport = BluetoothTransport(meshService: meshService)
+        transportManager.registerTransport(bluetoothTransport)
+        
+        // Register WiFi Direct transport for high-speed transfers
+        let wifiDirectTransport = WiFiDirectTransport()
+        transportManager.registerTransport(wifiDirectTransport)
+        
+        // Start discovery on available transports
+        do {
+            try transportManager.startDiscovery()
+            print("[FileTransferManager] Multi-transport system initialized")
+            
+            // Monitor active transport changes
+            transportManager.$primaryTransport
+                .sink { [weak self] transportType in
+                    self?.activeTransportType = transportType
+                    self?.updateSpeedMultiplier(for: transportType)
+                }
+                .store(in: &cancellables)
+                
+        } catch {
+            print("[FileTransferManager] Failed to start transport discovery: \(error)")
+            // Fallback to BLE-only mode
+            activeTransportType = .bluetooth
+        }
+    }
+    
+    /// Update speed multiplier based on active transport
+    private func updateSpeedMultiplier(for transportType: TransportType) {
+        switch transportType {
+        case .bluetooth:
+            transportSpeedMultiplier = 1.0  // Baseline BLE speed
+        case .wifiDirect:
+            transportSpeedMultiplier = 15.0  // ~15x faster than BLE
+        case .ultrasonic:
+            transportSpeedMultiplier = 0.1  // Much slower than BLE
+        case .lora:
+            transportSpeedMultiplier = 0.05  // Very slow but long range
+        }
+        
+        print("[FileTransferManager] Speed multiplier updated to \(transportSpeedMultiplier)x for \(transportType.displayName)")
+    }
+    
+    /// NEW: High-speed file transfer using optimal transport
+    func sendFileUsingOptimalTransport(_ fileURL: URL, to peerID: String, peerNickname: String) -> String? {
+        do {
+            // Access file data
+            guard fileURL.startAccessingSecurityScopedResource() else {
+                print("[FileTransferManager] Cannot access file: \(fileURL.path)")
+                return nil
+            }
+            defer { fileURL.stopAccessingSecurityScopedResource() }
+            
+            let fileData = try Data(contentsOf: fileURL)
+            let filename = fileURL.lastPathComponent
+            
+            // Create transfer ID
+            let transferID = UUID().uuidString
+            
+            // Determine optimal transport based on file size
+            let fileSize = fileData.count
+            let preferredTransport = transportManager.getPreferredTransport(for: peerID) ?? .bluetooth
+            
+            print("[FileTransferManager] Sending \(filename) (\(ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file))) via \(preferredTransport.displayName)")
+            
+            // For large files (>1MB), use WiFi Direct if available
+            if fileSize > 1_000_000 && preferredTransport == .wifiDirect {
+                return sendLargeFileViaWiFiDirect(fileData, filename: filename, to: peerID, transferID: transferID)
+            } else {
+                // Use existing chunked transfer for smaller files or BLE-only peers
+                return queueFileTransfer(fileURL, to: peerID, peerNickname: peerNickname)
+            }
+            
+        } catch {
+            print("[FileTransferManager] Failed to read file: \(error)")
+            return nil
+        }
+    }
+    
+    /// High-speed WiFi Direct file transfer for large files
+    private func sendLargeFileViaWiFiDirect(_ fileData: Data, filename: String, to peerID: String, transferID: String) -> String? {
+        do {
+            // Create transfer state for monitoring
+            let manifest = FILE_MANIFEST(
+                fileID: transferID,
+                fileName: filename,
+                fileSize: UInt64(fileData.count),
+                sha256Hash: SHA256.hash(data: fileData).compactMap { String(format: "%02x", $0) }.joined(),
+                senderID: meshService?.myPeerID ?? "unknown"
+            )
+            
+            let transferState = FileTransferState(
+                transferID: transferID,
+                manifest: manifest,
+                peerID: peerID,
+                peerNickname: getNickname(for: peerID),
+                direction: .send,
+                fileData: fileData
+            )
+            
+            activeTransfers.append(transferState)
+            isTransferring = true
+            
+            // Use transport manager's high-speed file transfer
+            try transportManager.sendFile(fileData, filename: filename, to: peerID) { [weak self] progress in
+                DispatchQueue.main.async {
+                    transferState.progress = progress * 100.0
+                    self?.updateGlobalProgress()
+                }
+            }
+            
+            print("[FileTransferManager] Started high-speed transfer: \(filename) via WiFi Direct")
+            return transferID
+            
+        } catch {
+            print("[FileTransferManager] WiFi Direct transfer failed: \(error)")
+            // Remove failed transfer
+            activeTransfers.removeAll { $0.transferID == transferID }
+            updateGlobalProgress()
+            return nil
+        }
+    }
+    
+    /// Get peer nickname from mesh service
+    private func getNickname(for peerID: String) -> String {
+        return meshService?.peerNicknames[peerID] ?? "peer-\(peerID.prefix(4))"
     }
     
     /// Queue a file for transfer with drag-and-drop support
@@ -545,9 +682,23 @@ class FileTransferManager: ObservableObject {
             payload: payload
         )
         
-        // Send via mesh service
-        meshService.broadcastFileTransferPacket(packet)
-        bytesTransferredSinceLastUpdate += UInt64(chunk.payload.count)
+        // NEW: Use intelligent transport selection for optimal performance
+        do {
+            try transportManager.sendOptimal(packet, to: peerID)
+            bytesTransferredSinceLastUpdate += UInt64(chunk.payload.count)
+            
+            // Log transport selection for debugging
+            let selectedTransport = transportManager.getPreferredTransport(for: peerID) ?? .bluetooth
+            if selectedTransport != activeTransportType {
+                print("[FileTransferManager] Using \(selectedTransport.displayName) for chunk \(chunk.chunkIndex) (\(chunk.payload.count) bytes)")
+            }
+            
+        } catch {
+            print("[FileTransferManager] Transport send failed, falling back to mesh service: \(error)")
+            // Fallback to original mesh service
+            meshService.broadcastFileTransferPacket(packet)
+            bytesTransferredSinceLastUpdate += UInt64(chunk.payload.count)
+        }
     }
     
     private func sendInitialAck(for manifest: FILE_MANIFEST, to peerID: String) {

@@ -135,15 +135,17 @@ targets:
       - target: bitshare_iOS
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: share.bitshare.tests
-      INFOPLIST_FILE: bitchatTests/Info.plist
+      INFOPLIST_FILE: bitshareTests/Info.plist
       SWIFT_VERSION: 5.0
       IPHONEOS_DEPLOYMENT_TARGET: 16.0
-      TEST_HOST: $(BUILT_PRODUCTS_DIR)/bitchat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bitchat
+      TEST_HOST: $(BUILT_PRODUCTS_DIR)/bitshare.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bitshare
       BUNDLE_LOADER: $(TEST_HOST)
       CODE_SIGN_STYLE: Automatic
       CODE_SIGNING_REQUIRED: YES
       CODE_SIGNING_ALLOWED: YES
       DEVELOPMENT_TEAM: L3N5LHJD5Y
+      FRAMEWORK_SEARCH_PATHS: $(inherited)
+      OTHER_LDFLAGS: -framework MultipeerConnectivity -framework Network
       
   bitshareTests_macOS:
     type: bundle.unit-test
@@ -154,15 +156,17 @@ targets:
       - target: bitshare_macOS
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: share.bitshare.tests
-      INFOPLIST_FILE: bitchatTests/Info.plist
+      INFOPLIST_FILE: bitshareTests/Info.plist
       SWIFT_VERSION: 5.0
       MACOSX_DEPLOYMENT_TARGET: 13.0
-      TEST_HOST: $(BUILT_PRODUCTS_DIR)/bitchat.app/Contents/MacOS/bitchat
+      TEST_HOST: $(BUILT_PRODUCTS_DIR)/bitshare.app/Contents/MacOS/bitshare
       BUNDLE_LOADER: $(TEST_HOST)
       CODE_SIGN_STYLE: Automatic
       CODE_SIGNING_REQUIRED: YES
       CODE_SIGNING_ALLOWED: YES
       DEVELOPMENT_TEAM: L3N5LHJD5Y
+      FRAMEWORK_SEARCH_PATHS: $(inherited)
+      OTHER_LDFLAGS: -framework MultipeerConnectivity -framework Network
 
 schemes:
   bitshare (iOS):

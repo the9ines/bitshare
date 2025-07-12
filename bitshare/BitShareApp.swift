@@ -12,23 +12,33 @@ import UserNotifications
 @main
 struct bitshareApp: App {
     @StateObject private var chatViewModel = ChatViewModel()
+    @StateObject private var fileTransferManager = FileTransferManager.shared
+    @StateObject private var transportManager = TransportManager.shared
+    
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
     
     init() {
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+        print("[BitShareApp] Initializing multi-transport file sharing system")
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(chatViewModel)
+                .environmentObject(fileTransferManager)
+                .environmentObject(transportManager)
                 .onAppear {
                     NotificationDelegate.shared.chatViewModel = chatViewModel
                     #if os(iOS)
                     appDelegate.chatViewModel = chatViewModel
                     #endif
+                    
+                    // Initialize transport system integration
+                    initializeTransportSystem()
+                    
                     // Check for shared content
                     checkForSharedContent()
                 }
@@ -46,6 +56,22 @@ struct bitshareApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         #endif
+    }
+    
+    // MARK: - Transport System Initialization
+    
+    private func initializeTransportSystem() {
+        // Connect file transfer manager with mesh service when available
+        if let meshService = chatViewModel.meshService {
+            fileTransferManager.setMeshService(meshService)
+            print("[BitShareApp] Connected FileTransferManager to BluetoothMeshService")
+            print("[BitShareApp] Multi-transport system ready - supporting BLE + WiFi Direct")
+        } else {
+            // Retry after a delay if mesh service isn't ready yet
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.initializeTransportSystem()
+            }
+        }
     }
     
     private func handleURL(_ url: URL) {
