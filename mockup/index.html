@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bitshare - Decentralized File Sharing</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header Section (44px) -->
+        <header class="header">
+            <div class="header-content">
+                <div class="app-title">
+                    <span class="title-text">bitshare</span>
+                    <span class="version-badge">v1.0.0</span>
+                </div>
+                
+                <div class="transport-status" id="transportStatus">
+                    <div class="transport-icon">
+                        <span class="icon" id="transportIcon">📡</span>
+                    </div>
+                    <div class="transport-info">
+                        <span class="transport-name" id="transportName">Noise Protocol</span>
+                        <div class="connection-indicator">
+                            <span class="connection-dot" id="connectionDot"></span>
+                            <span class="peer-count" id="peerCount">3</span>
+                        </div>
+                    </div>
+                    <div class="speed-multiplier" id="speedMultiplier">
+                        <span class="bolt-icon">⚡</span>
+                        <span class="speed-text">15x faster</span>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="header-btn" id="settingsBtn">⚙️</button>
+                    <button class="header-btn" id="historyBtn">📊</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- File Drop Zone -->
+            <div class="file-drop-zone" id="fileDropZone">
+                <div class="drop-zone-content">
+                    <div class="drop-icon">📁</div>
+                    <h2 class="drop-title">Drop files here</h2>
+                    <p class="drop-subtitle">or click to select files</p>
+                    <div class="drop-features">
+                        <div class="feature">
+                            <span class="feature-icon">🔐</span>
+                            <span class="feature-text">Noise Protocol Encrypted</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🚀</span>
+                            <span class="feature-text">WiFi Direct High Speed</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">📡</span>
+                            <span class="feature-text">Bluetooth Mesh Network</span>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" multiple hidden>
+                </div>
+            </div>
+
+            <!-- Active File Transfers -->
+            <div class="file-transfers" id="fileTransfers">
+                <h3 class="transfers-title">Active Transfers</h3>
+                <div class="transfers-list" id="transfersList">
+                    <!-- Transfer items will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- Network Statistics -->
+            <div class="network-stats" id="networkStats">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalTransfers">47</div>
+                        <div class="stat-label">Total Transfers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="bytesTransferred">2.3 GB</div>
+                        <div class="stat-label">Bytes Transferred</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgSpeed">1.2 MB/s</div>
+                        <div class="stat-label">Average Speed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="sessionTime">1h 23m</div>
+                        <div class="stat-label">Session Time</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Peer Controls Section -->
+        <footer class="peer-controls">
+            <div class="peers-section">
+                <h3 class="peers-title">Connected Peers</h3>
+                <div class="peers-list" id="peersList">
+                    <!-- Peer items will be added here dynamically -->
+                </div>
+            </div>
+            
+            <div class="transport-controls">
+                <button class="transport-btn active" id="bluetoothBtn">
+                    <span class="btn-icon">📡</span>
+                    <span class="btn-text">Bluetooth</span>
+                </button>
+                <button class="transport-btn" id="wifiDirectBtn">
+                    <span class="btn-icon">📶</span>
+                    <span class="btn-text">WiFi Direct</span>
+                </button>
+            </div>
+        </footer>
+
+        <!-- Sidebar Panel -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3 class="sidebar-title">Settings</h3>
+                <button class="close-btn" id="closeSidebarBtn">×</button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="settings-group">
+                    <h4 class="group-title">Security</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">Noise Protocol</span>
+                        <div class="setting-status enabled">✓ Enabled</div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Forward Secrecy</span>
+                        <div class="setting-status enabled">✓ Active</div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Session Rekey</span>
+                        <div class="setting-status">60s</div>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <h4 class="group-title">Transport</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">Auto-Select</span>
+                        <div class="setting-status enabled">✓ On</div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">WiFi Direct Threshold</span>
+                        <div class="setting-status">1 MB</div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Battery Threshold</span>
+                        <div class="setting-status">50%</div>
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <h4 class="group-title">App Info</h4>
+                    <div class="setting-item">
+                        <span class="setting-label">Version</span>
+                        <div class="setting-status">1.0.0</div>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">Protocol</span>
+                        <div class="setting-status">bitchat compatible</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Establishing Noise Protocol Session...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Console Output -->
+    <div class="console" id="console">
+        <div class="console-header">
+            <span class="console-title">bitshare debug console</span>
+            <button class="console-toggle" id="consoleToggle">_</button>
+        </div>
+        <div class="console-output" id="consoleOutput">
+            <div class="console-line">[BitShareApp] Initializing multi-transport file sharing system with Noise Protocol</div>
+            <div class="console-line">[NoiseEncryptionService] Static identity key loaded from keychain</div>
+            <div class="console-line">[TransportManager] Registered Noise Protocol transport</div>
+            <div class="console-line">[TransportManager] Registered WiFi Direct transport</div>
+            <div class="console-line">[NoiseTransport] Started discovery with Noise Protocol</div>
+            <div class="console-line">[NoiseTransport] Noise session established with peer-a1b2</div>
+            <div class="console-line">[NoiseTransport] Noise session established with peer-c3d4</div>
+            <div class="console-line">[NoiseTransport] Noise session established with peer-e5f6</div>
+            <div class="console-line">[FileTransferManager] Multi-transport system initialized with Noise Protocol</div>
+            <div class="console-line">[BitShareApp] Multi-transport system ready - supporting Noise Protocol + WiFi Direct</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

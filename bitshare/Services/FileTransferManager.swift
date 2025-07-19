@@ -75,11 +75,11 @@ class FileTransferManager: ObservableObject {
         setupTransportSystem(meshService)
     }
     
-    /// Initialize the multi-transport system for blazing fast file transfers
+    /// Initialize the multi-transport system with Noise Protocol encryption
     private func setupTransportSystem(_ meshService: BluetoothMeshService) {
-        // Register Bluetooth transport (wraps existing mesh service)
-        let bluetoothTransport = BluetoothTransport(meshService: meshService)
-        transportManager.registerTransport(bluetoothTransport)
+        // Register Noise-encrypted Bluetooth transport (replaces old BluetoothTransport)
+        let noiseTransport = NoiseTransport(meshService: meshService)
+        transportManager.registerTransport(noiseTransport)
         
         // Register WiFi Direct transport for high-speed transfers
         let wifiDirectTransport = WiFiDirectTransport()
@@ -88,7 +88,7 @@ class FileTransferManager: ObservableObject {
         // Start discovery on available transports
         do {
             try transportManager.startDiscovery()
-            print("[FileTransferManager] Multi-transport system initialized")
+            print("[FileTransferManager] Multi-transport system initialized with Noise Protocol")
             
             // Monitor active transport changes
             transportManager.$primaryTransport
@@ -100,7 +100,7 @@ class FileTransferManager: ObservableObject {
                 
         } catch {
             print("[FileTransferManager] Failed to start transport discovery: \(error)")
-            // Fallback to BLE-only mode
+            // Fallback to Noise-encrypted BLE-only mode
             activeTransportType = .bluetooth
         }
     }

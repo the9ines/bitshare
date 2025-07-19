@@ -12,23 +12,22 @@ struct ContentView: View {
     @EnvironmentObject var viewModel: ChatViewModel
     @EnvironmentObject var fileTransferManager: FileTransferManager
     @EnvironmentObject var transportManager: TransportManager
-    @State private var messageText = ""
-    @State private var textFieldSelection: NSRange? = nil
-    @FocusState private var isTextFieldFocused: Bool
+    // File sharing state
+    @State private var isDraggedOver = false
+    @State private var selectedFiles: [URL] = []
+    @State private var showFileImporter = false
+    @State private var showTransferHistory = false
+    
+    // UI state
     @Environment(\.colorScheme) var colorScheme
-    @State private var showPeerList = false
     @State private var showSidebar = false
     @State private var sidebarDragOffset: CGFloat = 0
-    @State private var showAppInfo = false
-    @State private var showPasswordInput = false
-    @State private var passwordInputChannel: String? = nil
-    @State private var passwordInput = ""
-    @State private var showPasswordPrompt = false
-    @State private var passwordPromptInput = ""
-    @State private var showPasswordError = false
-    @State private var showCommandSuggestions = false
-    @State private var commandSuggestions: [String] = []
-    @State private var showLeaveChannelAlert = false
+    @State private var showPeerList = false
+    
+    // Enhanced security indicators
+    @State private var showSecurityStatus = false
+    @State private var showTransportSelector = false
+    @StateObject private var peerIDManager = PeerIDManager.shared
     
     private var backgroundColor: Color {
         colorScheme == .dark ? Color.black : Color.white
@@ -48,37 +47,36 @@ struct ContentView: View {
             GeometryReader { geometry in
                 ZStack {
                     VStack(spacing: 0) {
-                        // PRD Section 4.2: Header (44px fixed height)
-                        headerView
+                        // PRD Section 4.2: Enhanced Header with Security Status
+                        enhancedHeaderView
                             .frame(height: 44)
                         Divider()
                         
                         // PRD Section 4.2: File Drop Zone / Transfer Area (main content)
-                        fileDropZoneView
+                        enhancedFileDropZoneView
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         Divider()
                         
-                        // PRD Section 4.2: Peer Discovery / Controls (bottom section)
-                        peerControlsView
+                        // PRD Section 4.2: Enhanced Peer Controls with Security Status
+                        enhancedPeerControlsView
                     }
                     .background(backgroundColor)
                     .foregroundColor(textColor)
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                // Only respond to leftward swipes when sidebar is closed
-                                // or rightward swipes when sidebar is open
+                                // Enhanced slide-over gesture (swipe from right edge)
                                 if !showSidebar && value.translation.width < 0 {
-                                    sidebarDragOffset = max(value.translation.width, -geometry.size.width * 0.7)
+                                    sidebarDragOffset = max(value.translation.width, -geometry.size.width * 0.75)
                                 } else if showSidebar && value.translation.width > 0 {
-                                    sidebarDragOffset = min(-geometry.size.width * 0.7 + value.translation.width, 0)
+                                    sidebarDragOffset = min(-geometry.size.width * 0.75 + value.translation.width, 0)
                                 }
                             }
                             .onEnded { value in
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     if !showSidebar {
-                                        // Opening gesture (swipe left)
-                                        if value.translation.width < -100 || (value.translation.width < -50 && value.velocity.width < -500) {
+                                        // Opening gesture (swipe left from edge)
+                                        if value.translation.width < -80 || (value.translation.width < -40 && value.velocity.width < -400) {
                                             showSidebar = true
                                             sidebarDragOffset = 0
                                         } else {
@@ -86,7 +84,7 @@ struct ContentView: View {
                                         }
                                     } else {
                                         // Closing gesture (swipe right)
-                                        if value.translation.width > 100 || (value.translation.width > 50 && value.velocity.width > 500) {
+                                        if value.translation.width > 80 || (value.translation.width > 40 && value.velocity.width > 400) {
                                             showSidebar = false
                                             sidebarDragOffset = 0
                                         } else {
@@ -97,7 +95,7 @@ struct ContentView: View {
                             }
                     )
                     
-                    // Sidebar overlay
+                    // Enhanced slide-over sidebar
                     HStack(spacing: 0) {
                         // Tap to dismiss area
                         Color.clear
@@ -1410,6 +1408,277 @@ struct DeliveryStatusView: View {
             }
             .foregroundColor(secondaryTextColor.opacity(0.6))
             .help("Delivered to \(reached) of \(total) members")
+        }
+    }
+    
+    // MARK: - Enhanced Views for Phase 2 UI Modernization
+    
+    /// Enhanced header with security status and transport indicators
+    private var enhancedHeaderView: some View {
+        HStack(spacing: 12) {
+            // App title with security indicator
+            HStack(spacing: 8) {
+                Text("bitshare")
+                    .font(.system(size: 16, weight: .medium, design: .monospaced))
+                    .foregroundColor(textColor)
+                
+                // Security status indicator
+                if peerIDManager.rotationCount > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(textColor)
+                        
+                        Text("🔐 Noise")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(textColor.opacity(0.8))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(textColor.opacity(0.1))
+                    .cornerRadius(8)
+                }
+            }
+            
+            Spacer()
+            
+            // Transport status with peer count
+            CompactTransportStatusView(
+                transportManager: transportManager,
+                fileTransferManager: fileTransferManager
+            )
+            
+            // Settings button (opens slide-over)
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showSidebar.toggle()
+                    sidebarDragOffset = 0
+                }
+            }) {
+                Image(systemName: "gear")
+                    .font(.system(size: 16))
+                    .foregroundColor(textColor)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .background(backgroundColor.opacity(0.95))
+    }
+    
+    /// Enhanced file drop zone with drag & drop support
+    private var enhancedFileDropZoneView: some View {
+        ZStack {
+            // Drop zone background
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isDraggedOver ? textColor.opacity(0.1) : backgroundColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            isDraggedOver ? textColor : textColor.opacity(0.3),
+                            style: StrokeStyle(lineWidth: 2, dash: isDraggedOver ? [] : [8, 4])
+                        )
+                )
+                .animation(.easeInOut(duration: 0.2), value: isDraggedOver)
+            
+            VStack(spacing: 24) {
+                // Drop zone icon and text
+                VStack(spacing: 12) {
+                    Image(systemName: isDraggedOver ? "folder.fill.badge.plus" : "folder.badge.plus")
+                        .font(.system(size: 48))
+                        .foregroundColor(isDraggedOver ? textColor : textColor.opacity(0.6))
+                        .scaleEffect(isDraggedOver ? 1.1 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDraggedOver)
+                    
+                    VStack(spacing: 4) {
+                        Text(isDraggedOver ? "Drop files to share" : "📁 Drag files here")
+                            .font(.system(size: 18, weight: .medium, design: .monospaced))
+                            .foregroundColor(textColor)
+                        
+                        Text("or click to select")
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundColor(textColor.opacity(0.7))
+                    }
+                }
+                
+                // File selection button
+                Button(action: {
+                    showFileImporter = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 16))
+                        Text("Select Files")
+                            .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(textColor)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                
+                // Active transfers section
+                if !fileTransferManager.activeTransfers.isEmpty {
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("Active Transfers")
+                                .font(.system(size: 16, weight: .medium, design: .monospaced))
+                                .foregroundColor(textColor)
+                            Spacer()
+                        }
+                        
+                        ForEach(fileTransferManager.activeTransfers.prefix(3), id: \.transferID) { transfer in
+                            FileTransferProgressView(transfer: transfer)
+                        }
+                        
+                        if fileTransferManager.activeTransfers.count > 3 {
+                            Button("View All Transfers") {
+                                showTransferHistory = true
+                            }
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(textColor.opacity(0.8))
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+            }
+            .padding(32)
+        }
+        .onDrop(of: [.fileURL], isTargeted: $isDraggedOver) { providers in
+            handleFileDrop(providers: providers)
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: true
+        ) { result in
+            switch result {
+            case .success(let urls):
+                selectedFiles = urls
+                handleFileSelection(urls)
+            case .failure(let error):
+                print("File selection failed: \(error)")
+            }
+        }
+        .sheet(isPresented: $showTransferHistory) {
+            FileTransferHistoryView(viewModel: viewModel)
+        }
+    }
+    
+    /// Enhanced peer controls with security status
+    private var enhancedPeerControlsView: some View {
+        VStack(spacing: 8) {
+            // Peer discovery status
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(viewModel.isConnected ? textColor : Color.red)
+                        .symbolEffect(.variableColor.iterative, isActive: viewModel.isConnected)
+                    
+                    Text("👥 Peers: \(transportManager.allPeers.count)")
+                        .font(.system(size: 14, design: .monospaced))
+                        .foregroundColor(textColor)
+                }
+                
+                Spacer()
+                
+                // Peer ID rotation indicator
+                if peerIDManager.rotationCount > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.2.circlepath")
+                            .font(.system(size: 10))
+                            .foregroundColor(textColor.opacity(0.6))
+                        
+                        Text("ID: \(peerIDManager.rotationCount)")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(textColor.opacity(0.6))
+                    }
+                }
+            }
+            
+            // Transport controls
+            HStack(spacing: 12) {
+                // Bluetooth LE indicator
+                Button(action: {
+                    // Manual transport selection
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bluetooth")
+                            .font(.system(size: 12))
+                        Text("🔵 BLE")
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+                    .foregroundColor(transportManager.primaryTransport == .bluetooth ? textColor : textColor.opacity(0.6))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(transportManager.primaryTransport == .bluetooth ? textColor.opacity(0.1) : Color.clear)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+                
+                // WiFi Direct indicator
+                Button(action: {
+                    // Manual transport selection
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "wifi")
+                            .font(.system(size: 12))
+                        Text("🟢 WiFi Direct")
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+                    .foregroundColor(transportManager.primaryTransport == .wifiDirect ? textColor : textColor.opacity(0.6))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(transportManager.primaryTransport == .wifiDirect ? textColor.opacity(0.1) : Color.clear)
+                    .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+                
+                Spacer()
+                
+                // History button
+                Button(action: {
+                    showTransferHistory = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 12))
+                        Text("History")
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+                    .foregroundColor(textColor.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(backgroundColor.opacity(0.95))
+    }
+    
+    // MARK: - File Handling
+    
+    private func handleFileDrop(providers: [NSItemProvider]) -> Bool {
+        for provider in providers {
+            provider.loadFileRepresentation(forTypeIdentifier: "public.file-url") { url, error in
+                if let url = url {
+                    DispatchQueue.main.async {
+                        self.selectedFiles.append(url)
+                        self.handleFileSelection([url])
+                    }
+                }
+            }
+        }
+        return true
+    }
+    
+    private func handleFileSelection(_ urls: [URL]) {
+        // Process selected files for sharing
+        for url in urls {
+            print("Selected file: \(url.lastPathComponent)")
+            // TODO: Integrate with FileTransferManager
         }
     }
 }

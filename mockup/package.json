@@ -1,0 +1,36 @@
+{
+  "name": "bitshare-mockup",
+  "version": "1.0.0",
+  "description": "Interactive web mockup of the bitshare decentralized file sharing app",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 server.py",
+    "dev": "python3 server.py",
+    "serve": "python3 server.py"
+  },
+  "keywords": [
+    "bitshare",
+    "decentralized",
+    "file-sharing",
+    "noise-protocol",
+    "peer-to-peer",
+    "bluetooth",
+    "wifi-direct",
+    "encryption"
+  ],
+  "author": "bitshare team",
+  "license": "Public Domain",
+  "homepage": "https://github.com/bitshare/bitshare",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bitshare/bitshare"
+  },
+  "bugs": {
+    "url": "https://github.com/bitshare/bitshare/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

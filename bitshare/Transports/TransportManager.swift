@@ -33,10 +33,18 @@ class TransportManager: ObservableObject {
     private let batteryOptimizer = BatteryOptimizer.shared
     private var cancellables = Set<AnyCancellable>()
     
+    // Enhanced security integration
+    private let peerIDManager = PeerIDManager.shared
+    private let noiseService = NoiseEncryptionService()
+    private var peerVersions: [PeerID: ProtocolVersion] = [:]
+    private var trustedPeers: Set<PeerID> = []
+    private var securityEvents: [SecurityEvent] = []
+    
     // Transport selection preferences
     private let fileTransferThreshold: Int = 1_000_000  // 1MB - switch to WiFi Direct for larger files
     private let batteryThreshold: Float = 0.5  // 50% - require this much battery for WiFi Direct
     private let messageSizeThreshold: Int = 1000  // 1KB - use BLE for smaller messages
+    private let securityUpgradeThreshold: Int = 10_000_000  // 10MB - force WiFi Direct for large secure transfers
     
     // Performance tracking
     private var messageCount: [TransportType: Int] = [:]
@@ -48,6 +56,88 @@ class TransportManager: ObservableObject {
     private init() {
         setupBatteryMonitoring()
         setupTransportObserver()
+        setupSecurityIntegration()
+    }
+    
+    // MARK: - Security Integration
+    
+    private func setupSecurityIntegration() {
+        // Set up Noise service callbacks
+        noiseService.onSessionEstablished = { [weak self] peerID in
+            self?.handleSessionEstablished(peerID)
+        }
+        
+        noiseService.onVersionNegotiated = { [weak self] peerID, version in
+            self?.peerVersions[peerID] = version
+            self?.logSecurityEvent(.versionNegotiated(peerID: peerID, version: version))
+        }
+        
+        noiseService.onRekeyComplete = { [weak self] peerID in
+            self?.logSecurityEvent(.rekeyCompleted(peerID: peerID))
+        }
+        
+        // Set up peer ID manager callbacks
+        peerIDManager.onPeerIDRotated = { [weak self] oldID, newID in
+            self?.handlePeerIDRotation(oldID: oldID, newID: newID)
+        }
+        
+        peerIDManager.onPeerIDMapped = { [weak self] peerID, staticKey in
+            self?.handlePeerIDMapping(peerID: peerID, staticKey: staticKey)
+        }
+    }
+    
+    private func handleSessionEstablished(_ peerID: PeerID) {
+        Task { @MainActor in
+            // Update peer trust status
+            trustedPeers.insert(peerID)
+            
+            // Log security event
+            logSecurityEvent(.sessionEstablished(peerID: peerID))
+        }
+    }
+    
+    private func handlePeerIDRotation(oldID: String, newID: String) {
+        Task { @MainActor in
+            // Update routing table
+            if let transports = routingTable[oldID] {
+                routingTable[newID] = transports
+                routingTable.removeValue(forKey: oldID)
+            }
+            
+            // Update peer capabilities
+            if let capabilities = peerCapabilities[oldID] {
+                peerCapabilities[newID] = capabilities
+                peerCapabilities.removeValue(forKey: oldID)
+            }
+            
+            // Update trusted peers
+            if trustedPeers.contains(oldID) {
+                trustedPeers.remove(oldID)
+                trustedPeers.insert(newID)
+            }
+            
+            // Log security event
+            logSecurityEvent(.peerIDRotated(oldID: oldID, newID: newID))
+        }
+    }
+    
+    private func handlePeerIDMapping(peerID: String, staticKey: Data) {
+        Task { @MainActor in
+            // Add peer fingerprint to noise service
+            noiseService.addPeerFingerprint(peerID, publicKey: staticKey)
+            
+            // Log security event
+            logSecurityEvent(.peerMapped(peerID: peerID))
+        }
+    }
+    
+    private func logSecurityEvent(_ event: SecurityEvent) {
+        securityEvents.append(event)
+        
+        // Keep only last 100 events to prevent memory growth
+        if securityEvents.count > 100 {
+            securityEvents.removeFirst()
+        }
     }
     
     // MARK: - Transport Registration
@@ -75,6 +165,9 @@ class TransportManager: ObservableObject {
         )
         
         print("[TransportManager] Registered \(transport.transportType.displayName) transport")
+        
+        // Set up enhanced security for this transport
+        setupTransportSecurity(transport)
     }
     
     func unregisterTransport(_ transportType: TransportType) {
@@ -86,6 +179,105 @@ class TransportManager: ObservableObject {
             activeTransports.remove(transportType)
             print("[TransportManager] Unregistered \(transportType.displayName) transport")
         }
+    }
+    
+    private func setupTransportSecurity(_ transport: TransportProtocol) {
+        // Initialize version negotiation for new transport
+        if let noiseTransport = transport as? NoiseTransport {
+            noiseTransport.setNoiseService(noiseService)
+        }
+    }
+    
+    // MARK: - Enhanced Transport Selection
+    
+    func selectOptimalTransport(for data: Data, to peerID: PeerID) -> TransportType {
+        let dataSize = data.count
+        let batteryLevel = batteryOptimizer.batteryLevel
+        let peerCapabilities = peerCapabilities[peerID] ?? []
+        
+        // Security-first selection for large transfers
+        if dataSize > securityUpgradeThreshold && peerCapabilities.contains(.wifiDirect) {
+            logSecurityEvent(.transportSecurityUpgrade(peerID: peerID, from: .bluetooth, to: .wifiDirect))
+            return .wifiDirect
+        }
+        
+        // Standard selection logic with security considerations
+        if dataSize > fileTransferThreshold && batteryLevel > batteryThreshold {
+            // Large file - prefer WiFi Direct if available
+            if peerCapabilities.contains(.wifiDirect) && availableTransports.contains(.wifiDirect) {
+                return .wifiDirect
+            }
+        }
+        
+        if dataSize < messageSizeThreshold || batteryLevel < batteryThreshold {
+            // Small message or low battery - prefer Bluetooth LE
+            if peerCapabilities.contains(.bluetooth) && availableTransports.contains(.bluetooth) {
+                return .bluetooth
+            }
+        }
+        
+        // Fallback to any available transport that peer supports
+        for transport in availableTransports {
+            if peerCapabilities.contains(transport) {
+                return transport
+            }
+        }
+        
+        // Final fallback to primary transport
+        return primaryTransport
+    }
+    
+    // MARK: - Enhanced Message Sending
+    
+    func sendSecureMessage(_ data: Data, to peerID: PeerID?, via transportType: TransportType? = nil) {
+        guard let targetPeer = peerID else {
+            // Broadcast to all peers
+            for peer in allPeers {
+                sendSecureMessage(data, to: peer.id, via: transportType)
+            }
+            return
+        }
+        
+        // First ensure we have a secure session
+        guard noiseService.hasSession(with: targetPeer) else {
+            // Initiate handshake first
+            if let handshakeMessage = noiseService.initiateHandshake(with: targetPeer) {
+                let transport = transportType ?? selectOptimalTransport(for: handshakeMessage.encode(), to: targetPeer)
+                sendMessage(handshakeMessage.encode(), to: targetPeer, via: transport)
+            }
+            return
+        }
+        
+        // Encrypt the message
+        guard let encryptedMessage = noiseService.encryptMessage(data, for: targetPeer) else {
+            logSecurityEvent(.securityViolation(peerID: targetPeer, reason: "Message encryption failed"))
+            return
+        }
+        
+        // Send via optimal transport
+        let transport = transportType ?? selectOptimalTransport(for: encryptedMessage.encode(), to: targetPeer)
+        sendMessage(encryptedMessage.encode(), to: targetPeer, via: transport)
+    }
+    
+    private func sendMessage(_ data: Data, to peerID: PeerID, via transportType: TransportType) {
+        guard let transport = transports[transportType] else {
+            print("[TransportManager] Transport \(transportType.displayName) not available")
+            return
+        }
+        
+        // Create BitShare packet
+        let packet = BitSharePacket(
+            type: .encrypted,
+            senderID: peerIDManager.currentPeerID,
+            receiverID: peerID,
+            data: data,
+            timestamp: Date()
+        )
+        
+        transport.send(packet, to: peerID)
+        
+        // Update statistics
+        updateStatistics(for: transportType, messagesSent: 1, bytesSent: Int64(data.count))
     }
     
     // MARK: - Discovery Management

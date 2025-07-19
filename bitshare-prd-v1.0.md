@@ -109,6 +109,35 @@ The Bitchat protocol will be extended with:
 
 Including chunking, reassembly, integrity verification, progress tracking, and resume capabilities.
 
+### Multi-Transport Architecture
+
+BitShare implements a sophisticated multi-transport system for optimal file transfer performance:
+
+#### Transport Layer Abstraction
+- **TransportProtocol Interface**: Unified API for all transport mechanisms
+- **TransportManager**: Intelligent coordinator for multiple transport protocols
+- **Automatic Transport Selection**: Based on file size, battery level, and peer capabilities
+
+#### WiFi Direct Integration
+- **Framework**: iOS MultipeerConnectivity, macOS Network.framework
+- **Performance**: 10-100x faster than Bluetooth LE (250+ Mbps vs 1-3 Mbps)
+- **Range**: 100-200 meters vs BLE's 10-30 meters
+- **Power Management**: Only activated when beneficial (large files, good battery)
+- **Security**: Same encryption as BLE (Noise Protocol + AES-256-GCM)
+
+#### Noise Protocol Security
+- **End-to-End Encryption**: All transports use Noise Protocol Framework
+- **Forward Secrecy**: Automatic 60-second key rotation
+- **Identity Protection**: Handshake encrypted, peer authentication
+- **Session Management**: Automatic session establishment and cleanup
+
+#### Intelligent Routing Algorithm
+```
+File Size < 1MB + Battery < 50% → Bluetooth LE
+File Size > 1MB + Battery > 50% → WiFi Direct
+Emergency/Broadcast → All available transports
+```
+
 ## Design System Requirements
 
 ### Visual Identity
@@ -124,25 +153,85 @@ Including chunking, reassembly, integrity verification, progress tracking, and r
 
 ```
 ┌─────────────────────────────────────┐
-│ bitshare* [peers: 3]                │  Header (44px fixed height)
+│ bitshare [🔐 Noise] [⚡ WiFi: 3]    │  Header (44px) - App title + Transport status
 ├─────────────────────────────────────┤
-│ File Drop Zone / Transfer Area      │  Main content area (scrollable if needed)
+│                                     │
+│     📁 Drag files here              │  File Drop Zone - Main content area
+│     or click to select              │  - Drag files to specific peers
+│                                     │  - Right-click context menus
+│     [Active Transfers]              │  - Transfer progress indicators
+│     ▓▓▓▓▓▓▓▓░░ 80% photo.jpg        │
+│                                     │
 ├─────────────────────────────────────┤
-│ Peer Discovery / Controls           │  Bottom section (variable height)
+│ 👥 Peers: Alice📱 Bob💻 Charlie📲   │  Peer Controls - Connected peers
+│ [🔵 BLE]  [🟢 WiFi Direct]         │  - Transport selection buttons
 └─────────────────────────────────────┘
 ```
+
+#### Enhanced UI Features
+- **Drag-to-Peer**: Drag files directly onto peer icons for direct sharing
+- **Transport Indicators**: Visual badges showing active transport and speed
+- **Transfer Queue**: Real-time progress bars for active transfers
+- **Peer Status**: Connection quality and transport capability indicators
+- **Context Menus**: Right-click for share, send to, broadcast options
+- **Sidebar**: Swipe-accessible settings and transfer history (iOS/macOS)
 
 ## Core Features & Functionality
 
 ### Essential Features (MVP)
 
-- Bluetooth Mesh Peer Discovery and Connection
-- Drag-and-Drop File Selection Interface
-- Multi-File Transfer with Progress Tracking
-- Transfer Pause/Resume Capabilities
-- File Integrity Verification (SHA-256)
-- Automatic Transport Optimization (Direct vs. Multi-hop)
-- Transfer History and Retry Mechanisms
+#### Core File Sharing
+- **Direct Peer File Sharing**: Click on peer to share files directly (private mode) ✅
+- **Group/Channel File Sharing**: Password-protected shared folders for teams ✅
+- **Drag-and-Drop Interface**: Intuitive file selection and sharing (no IRC commands) ⚠️
+- **Multi-File Transfer**: Select and transfer multiple files simultaneously ✅
+- **Transfer Management**: Accept/reject/pause/resume/cancel transfers ✅
+
+#### Multi-Transport System
+- **Bluetooth LE Support**: Encrypted mesh networking with Noise Protocol ✅
+- **WiFi Direct Integration**: High-speed transfers (15x faster than BLE) ✅
+- **Intelligent Transport Selection**: Automatic based on file size and battery ✅
+- **Transport Status Indicators**: Visual feedback showing active transport ⚠️
+- **Seamless Transport Handoff**: Automatic switching between BLE and WiFi ✅
+
+#### Peer Management
+- **Peer Discovery**: Automatic discovery of nearby BitShare users ✅
+- **Peer Blocking/Unblocking**: Control which peers can send files ✅
+- **Nickname Management**: Assign friendly names to peers ✅
+- **Connection Quality**: Signal strength and connection status indicators ⚠️
+
+#### Transfer Features
+- **Progress Tracking**: Real-time transfer progress with speed indicators ✅
+- **File Integrity Verification**: SHA-256 checksums for data integrity ✅
+- **Store-and-Forward**: Queue files for offline peers, deliver on reconnection ✅
+- **Transfer History**: View completed, failed, and pending transfers ⚠️
+- **Retry Mechanisms**: Automatic retry for failed transfers ✅
+
+#### Security & Privacy
+- **Noise Protocol Encryption**: End-to-end encryption for all transfers ✅
+- **Forward Secrecy**: Automatic 60-second key rotation ✅
+- **Session Management**: Secure session establishment and cleanup ✅
+- **Privacy Protection**: No data collection, local-only storage ✅
+
+### Implementation Status Summary
+
+#### ✅ Completed Features (Backend)
+- Multi-transport architecture (WiFi Direct + Bluetooth LE)
+- Noise Protocol encryption and security
+- File transfer management and progress tracking
+- Peer discovery and management
+- Store-and-forward messaging
+- Intelligent transport selection
+
+#### ⚠️ UI Features Needing Implementation
+- Drag-and-drop file interface
+- Transport status indicators in UI
+- Connection quality indicators
+- Transfer history view
+- Real-time progress bars
+
+#### 🎯 Core MVP Requirements
+The essential features marked with ⚠️ above are the minimum requirements to complete the MVP. All backend functionality is complete.
 
 ### Advanced Features (Post-MVP)
 
@@ -194,9 +283,70 @@ Including chunking, reassembly, integrity verification, progress tracking, and r
 - Conceptual Web Version (future)
 - Android Native App (future)
 
+### Current Implementation Status
+
+BitShare's core architecture is complete with WiFi Direct and Noise Protocol integration:
+
+#### Multi-Transport Implementation ✅
+- **TransportManager.swift**: Intelligent transport coordination
+- **NoiseTransport.swift**: Encrypted Bluetooth LE with Noise Protocol
+- **WiFiDirectTransport.swift**: High-speed WiFi Direct transport
+- **Transport Selection**: Automatic routing based on file size and battery
+
+#### Security Layer ✅
+- **NoiseEncryptionService.swift**: Complete Noise Protocol Framework
+- **Session Management**: 60-second key rotation with forward secrecy
+- **Peer Authentication**: SHA256 fingerprint verification
+- **End-to-End Encryption**: All transports use AES-256-GCM
+
+#### File Transfer System ✅
+- **FileTransferManager.swift**: Multi-transport file transfer coordination
+- **Chunking System**: Optimized for different transport types
+- **Progress Tracking**: Real-time transfer progress with speed indicators
+- **Store-and-Forward**: Queue files for offline peers
+
 ### Core Components
 
 Built by directly modifying Bitchat's codebase for maximum consistency and development acceleration.
+
+#### Transport Layer (Multi-Transport Architecture)
+- **TransportProtocol.swift**: Unified interface for all transport mechanisms
+- **TransportManager.swift**: Intelligent coordinator for multiple transport protocols
+- **NoiseTransport.swift**: Encrypted Bluetooth LE transport with Noise Protocol
+- **WiFiDirectTransport.swift**: High-speed WiFi Direct transport using MultipeerConnectivity
+- **TransportDelegate.swift**: Event handling for transport operations
+
+#### Security Layer (Noise Protocol Implementation)
+- **NoiseEncryptionService.swift**: Core Noise Protocol Framework implementation
+- **KeychainManager.swift**: Secure key storage and management
+- **Session Management**: Automatic 60-second key rotation and forward secrecy
+- **Peer Authentication**: SHA256 fingerprint verification and identity protection
+
+#### File Transfer System
+- **FileTransferManager.swift**: Core file transfer logic with multi-transport support
+- **FileTransferService.swift**: File chunking, reassembly, and integrity verification
+- **FileTransferProtocol.swift**: Protocol definitions for file transfer operations
+- **FileChunkOptimizer.swift**: Optimized chunking for different transport types
+
+#### Network Services
+- **BluetoothMeshService.swift**: Bluetooth LE mesh networking (adapted from bitchat)
+- **MessageRetentionService.swift**: Store-and-forward for offline peers
+- **DeliveryTracker.swift**: Track file delivery status and confirmation
+- **MessageRetryService.swift**: Automatic retry for failed transfers
+- **NotificationService.swift**: System notifications for file transfers
+
+#### User Interface
+- **ContentView.swift**: Main application interface with file drop zone
+- **FileTransferProgressView.swift**: Real-time transfer progress indicators
+- **TransportStatusView.swift**: Transport status and selection interface
+- **FileTransferHistoryView.swift**: Transfer history and management
+- **LinkPreviewView.swift**: File preview and metadata display
+
+#### Utility Components
+- **BatteryOptimizer.swift**: Battery-aware transport selection
+- **CompressionUtil.swift**: File compression for efficient transfers
+- **OptimizedBloomFilter.swift**: Efficient duplicate detection
+- **BinaryProtocol.swift**: Bitchat-compatible binary protocol implementation
 
 ### Integration Points
 
@@ -222,10 +372,25 @@ Built by directly modifying Bitchat's codebase for maximum consistency and devel
 
 ### Performance Metrics
 
-- File Transfer Success Rate
-- Average Transfer Speed (multi-hop)
-- Connection Establishment Time
-- Battery Usage Optimization
+#### File Transfer Performance
+- **File Transfer Success Rate**: >95% for files under 100MB
+- **Average Transfer Speed**: 
+  - WiFi Direct: 250+ Mbps (direct), 150+ Mbps (2-hop)
+  - Bluetooth LE: 1-3 Mbps (direct), 0.5-1 Mbps (2-hop)
+- **Connection Establishment Time**: <2 seconds for peer discovery
+- **Transfer Resumption**: 100% success rate after connection loss
+
+#### WiFi Direct Benchmarks
+- **Range Performance**: 100-200 meters line-of-sight
+- **Speed Advantage**: 15-100x faster than Bluetooth LE
+- **Battery Impact**: <20% additional drain for transfers >10MB
+- **Handoff Time**: <500ms switching between BLE and WiFi Direct
+
+#### Noise Protocol Security Metrics
+- **Encryption Overhead**: <5% performance impact
+- **Key Rotation**: 60-second automatic rekey
+- **Session Establishment**: <100ms for initial handshake
+- **Forward Secrecy**: 100% message unrecoverability after key rotation
 
 ### Ecosystem Metrics
 

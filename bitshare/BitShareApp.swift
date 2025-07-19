@@ -21,7 +21,7 @@ struct bitshareApp: App {
     
     init() {
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
-        print("[BitShareApp] Initializing multi-transport file sharing system")
+        print("[BitShareApp] Initializing multi-transport file sharing system with Noise Protocol")
     }
     
     var body: some Scene {
@@ -65,7 +65,7 @@ struct bitshareApp: App {
         if let meshService = chatViewModel.meshService {
             fileTransferManager.setMeshService(meshService)
             print("[BitShareApp] Connected FileTransferManager to BluetoothMeshService")
-            print("[BitShareApp] Multi-transport system ready - supporting BLE + WiFi Direct")
+            print("[BitShareApp] Multi-transport system ready - supporting Noise Protocol + WiFi Direct")
         } else {
             // Retry after a delay if mesh service isn't ready yet
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {

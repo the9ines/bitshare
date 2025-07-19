@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bitshare - Server Instructions</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: #000;
+            color: #00ff00;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { color: #00ff00; }
+        h2 { color: #00cc00; }
+        .code {
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        .method {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+        .button {
+            background: #00ff00;
+            color: #000;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #00cc00;
+        }
+        a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 bitshare App Mockup - Server Setup</h1>
+        
+        <p>Choose one of the following methods to run the bitshare mockup locally:</p>
+        
+        <div class="method">
+            <h2>Method 1: Python 3 (Recommended)</h2>
+            <p>Open Terminal and run:</p>
+            <div class="code">
+cd /Users/oberfelder/Desktop/the9ines.com/bitshare/mockup<br>
+python3 -m http.server 8000
+            </div>
+            <p>Then open: <a href="http://localhost:8000">http://localhost:8000</a></p>
+        </div>
+        
+        <div class="method">
+            <h2>Method 2: Node.js</h2>
+            <p>If you have Node.js installed:</p>
+            <div class="code">
+cd /Users/oberfelder/Desktop/the9ines.com/bitshare/mockup<br>
+npx http-server -p 8000
+            </div>
+            <p>Then open: <a href="http://localhost:8000">http://localhost:8000</a></p>
+        </div>
+        
+        <div class="method">
+            <h2>Method 3: PHP</h2>
+            <p>If you have PHP installed:</p>
+            <div class="code">
+cd /Users/oberfelder/Desktop/the9ines.com/bitshare/mockup<br>
+php -S localhost:8000
+            </div>
+            <p>Then open: <a href="http://localhost:8000">http://localhost:8000</a></p>
+        </div>
+        
+        <div class="method">
+            <h2>Method 4: Custom Python Server</h2>
+            <p>Run the custom server:</p>
+            <div class="code">
+cd /Users/oberfelder/Desktop/the9ines.com/bitshare/mockup<br>
+python3 simple-server.py
+            </div>
+            <p>The server will automatically try ports 8000-8009</p>
+        </div>
+        
+        <div class="method">
+            <h2>Method 5: Visual Studio Code</h2>
+            <p>If you have VS Code with Live Server extension:</p>
+            <ol>
+                <li>Open the mockup folder in VS Code</li>
+                <li>Right-click on index.html</li>
+                <li>Select "Open with Live Server"</li>
+            </ol>
+        </div>
+        
+        <div class="method">
+            <h2>Troubleshooting</h2>
+            <p><strong>Port already in use?</strong> Try a different port:</p>
+            <div class="code">
+python3 -m http.server 8001<br>
+# or<br>
+python3 -m http.server 8080
+            </div>
+            
+            <p><strong>Python not found?</strong> Try:</p>
+            <div class="code">
+python -m http.server 8000
+            </div>
+            
+            <p><strong>Permission denied?</strong> Make sure you're in the right directory:</p>
+            <div class="code">
+ls -la index.html
+            </div>
+        </div>
+        
+        <h2>🎯 What You'll See</h2>
+        <p>Once the server is running, you'll see:</p>
+        <ul>
+            <li>📱 Terminal-style interface with green theme</li>
+            <li>🔐 Noise Protocol encryption indicators</li>
+            <li>📁 Drag & drop file transfer simulation</li>
+            <li>🚀 WiFi Direct vs Bluetooth speed comparison</li>
+            <li>👥 Live peer connections</li>
+            <li>🔧 Interactive debug console</li>
+        </ul>
+        
+        <p><strong>Demo Controls:</strong></p>
+        <ul>
+            <li>Drag files to the drop zone</li>
+            <li>Press Cmd/Ctrl+K for debug console</li>
+            <li>Click gear icon for settings</li>
+            <li>Switch between transport modes</li>
+        </ul>
+        
+        <hr style="border-color: #333; margin: 30px 0;">
+        
+        <p>🔗 <strong>Direct file access:</strong> If servers don't work, you can open <code>index.html</code> directly in your browser, but some features may be limited.</p>
+        
+        <p>📧 <strong>Need help?</strong> Check the README.md file for more detailed instructions.</p>
+        
+        <script>
+            // Try to detect if we're running on a server
+            if (window.location.protocol === 'file:') {
+                const warning = document.createElement('div');
+                warning.style.cssText = 'background: #ff0000; color: #000; padding: 10px; margin: 20px 0; border-radius: 5px; font-weight: bold;';
+                warning.innerHTML = '⚠️ WARNING: You\'re viewing this as a file. Please use one of the server methods above for full functionality.';
+                document.body.insertBefore(warning, document.body.firstChild);
+            }
+        </script>
+    </div>
+</body>
+</html>
