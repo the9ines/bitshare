@@ -77,11 +77,12 @@ enum MessageType: UInt8 {
     case deliveryAck = 0x0A  // Acknowledge message received
     case deliveryStatusRequest = 0x0B  // Request delivery status update
     case readReceipt = 0x0C  // Message has been read/viewed
+    case protocolAck = 0x0D      // Protocol-level ACK for message reliability (Jack's optimization)
     
     // PRD-Specified File Transfer Types (Section 3.2)
-    case FILE_MANIFEST = 0x0D    // File metadata with SHA-256 hash
-    case FILE_CHUNK = 0x0E       // 480-byte file segments with chunk index
-    case FILE_ACK = 0x0F         // Chunk acknowledgment for reliability
+    case FILE_MANIFEST = 0x0E    // File metadata with SHA-256 hash
+    case FILE_CHUNK = 0x0F       // 480-byte file segments with chunk index
+    case FILE_ACK = 0x10         // Chunk acknowledgment for reliability
 }
 
 // Special recipient ID for broadcast messages
@@ -187,6 +188,31 @@ struct ReadReceipt: Codable {
     }
 }
 
+// Protocol ACK structure (Jack's optimization for message reliability)
+struct ProtocolAck: Codable {
+    let originalMessageID: String
+    let ackID: String
+    let senderID: String  // Who sent the ACK
+    let timestamp: Date
+    let hopCount: UInt8   // Number of hops the original message traveled
+    
+    init(originalMessageID: String, senderID: String, hopCount: UInt8 = 0) {
+        self.originalMessageID = originalMessageID
+        self.ackID = UUID().uuidString
+        self.senderID = senderID
+        self.timestamp = Date()
+        self.hopCount = hopCount
+    }
+    
+    func encode() -> Data? {
+        try? JSONEncoder().encode(self)
+    }
+    
+    static func decode(from data: Data) -> ProtocolAck? {
+        try? JSONDecoder().decode(ProtocolAck.self, from: data)
+    }
+}
+
 // Delivery status for messages
 enum DeliveryStatus: Codable, Equatable {
     case sending
@@ -269,6 +295,7 @@ protocol BitchatDelegate: AnyObject {
     // Delivery confirmation methods
     func didReceiveDeliveryAck(_ ack: DeliveryAck)
     func didReceiveReadReceipt(_ receipt: ReadReceipt)
+    func didReceiveProtocolAck(_ ack: ProtocolAck)  // Jack's ACK system
     func didUpdateMessageDeliveryStatus(_ messageID: String, status: DeliveryStatus)
 }
 
@@ -300,6 +327,10 @@ extension BitchatDelegate {
     }
     
     func didReceiveReadReceipt(_ receipt: ReadReceipt) {
+        // Default empty implementation
+    }
+    
+    func didReceiveProtocolAck(_ ack: ProtocolAck) {
         // Default empty implementation
     }
     
